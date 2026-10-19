@@ -6,43 +6,28 @@ Aplicação local para comparar e sincronizar scripts `JOB` e componentes do Stu
 
 ## Baixar e executar
 
-Escolha o sistema operacional. Os links sempre apontam para a versão portátil mais recente publicada:
+1. Baixe o pacote **StudioSync.zip** (ou clone este repositório) e extraia em uma pasta de sua preferência.
+2. Dê duplo clique no arquivo do seu sistema:
 
-| Sistema operacional | Download | Compatibilidade |
-| --- | --- | --- |
-| Windows | **[Baixar para Windows](https://github.com/MoisesDelfino/sincronizador-studio-extensoes/releases/latest/download/StudioSync-Windows-x64.zip)** | Windows 10 ou 11, 64 bits |
-| Linux | **[Baixar para Linux](https://github.com/MoisesDelfino/sincronizador-studio-extensoes/releases/latest/download/StudioSync-Linux-amd64.tar.gz)** | Linux 64 bits |
-| macOS — Apple Silicon | **[Baixar para Mac com chip Apple](https://github.com/MoisesDelfino/sincronizador-studio-extensoes/releases/latest/download/StudioSync-macOS-AppleSilicon.zip)** | Mac com chip M1, M2, M3 ou mais recente |
-| macOS — Intel | **[Baixar para Mac Intel](https://github.com/MoisesDelfino/sincronizador-studio-extensoes/releases/latest/download/StudioSync-macOS-Intel.zip)** | Mac com processador Intel |
+| Sistema | Arquivo |
+| --- | --- |
+| Windows | `Abrir Studio Sync.bat` |
+| macOS | `Abrir Studio Sync.command` |
+| Linux | `Abrir Studio Sync.desktop` (ou `Abrir Studio Sync.sh`) |
 
-O pacote portátil já inclui a aplicação, o Python e o navegador usado no login. Não é necessário instalar dependências separadamente nem manter o Studio Sync aberto quando ele não estiver em uso.
+Na primeira execução o aplicativo prepara o ambiente sozinho (ambiente Python e navegador do login), o que exige internet e leva alguns minutos. Nas próximas, abre em segundos.
 
-### Executar no Windows
+**Requisito:** Python 3.10 ou mais recente. No Windows, se não houver Python, o lançador o instala pelo winget.
 
-1. Baixe `StudioSync-Windows-x64.zip`.
-2. Extraia o conteúdo para uma pasta de sua preferência.
-3. Abra `StudioSync.exe` quando quiser usar a ferramenta.
+- **macOS:** na primeira vez, clique com o botão direito no `.command` → **Abrir**. Se necessário, rode `chmod +x "Abrir Studio Sync.command"`.
+- **Linux:** se o sistema não permitir, marque **Permitir executar como programa** nas propriedades do arquivo `.desktop`.
 
-### Executar no Linux
-
-1. Baixe `StudioSync-Linux-amd64.tar.gz`.
-2. Extraia o conteúdo para uma pasta de sua preferência.
-3. Abra o arquivo `StudioSync`. Se o sistema não permitir a primeira execução, marque **Permitir executar como programa** nas propriedades do arquivo.
-
-### Executar no macOS
-
-1. Confira em **Menu Apple → Sobre Este Mac** se o processador é Apple ou Intel.
-2. Baixe o arquivo `.zip` correspondente.
-3. Extraia o arquivo e abra **Studio Sync.app**. Se desejar, mova-o para a pasta **Aplicativos**.
-
-> Os aplicativos ainda não possuem assinatura digital corporativa. Caso o Windows ou o macOS mostre uma proteção do sistema, confirme a abertura somente se o arquivo tiver sido baixado desta página oficial do projeto.
-
-O Studio Sync funciona somente enquanto o aplicativo está aberto. Não é preciso configurá-lo para iniciar com o computador: abra-o quando precisar sincronizar e encerre-o ao terminar.
+O Studio Sync funciona somente enquanto está aberto.
 
 ## Primeiro uso
 
 1. Conecte-se à rede Betha ou à VPN.
-2. Abra **Studio Sync** pelo atalho ou menu de aplicativos.
+2. Abra o Studio Sync pelo arquivo `Abrir Studio Sync`.
 3. Clique em **Entrar no Studio Extensões** e conclua o login e o MFA na página oficial da Betha.
 4. Confira a entidade, escolha o sistema e selecione a pasta do repositório local.
 5. Clique em **Analisar diferenças**. Apenas a página exibida terá o conteúdo carregado.
@@ -62,30 +47,8 @@ A análise apenas apresenta uma prévia. Nenhum arquivo é alterado antes da con
 Consulte a [documentação detalhada](tools/studio_sync/README.md) para conhecer todas as regras de comparação e sincronização.
 
 <details>
-<summary><strong>Informações para desenvolvimento e publicação</strong></summary>
+<summary><strong>Informações para desenvolvimento</strong></summary>
 
-### Executar pelo código-fonte
-
-Requer Python 3.10 ou mais recente:
-
-```bash
-python3 -m pip install --user -r tools/studio_sync/requirements.txt
-playwright install chromium
-python3 sincronizar_studio.py
-```
-
-### Gerar e publicar os aplicativos portáteis
-
-O workflow `.github/workflows/build-portable-apps.yml` executa os testes, constrói o aplicativo no sistema operacional correspondente e o compacta para distribuição.
-
-- A execução manual disponibiliza os arquivos na página da execução do GitHub Actions.
-- Uma tag no formato `v*`, por exemplo `v0.3.0`, cria uma GitHub Release e publica automaticamente os quatro pacotes portáteis usados pelos links deste README.
-
-Exemplo de publicação:
-
-```bash
-git tag v0.3.0
-git push origin v0.3.0
-```
+Execução pelo código-fonte (Python 3.10+): `python3 iniciar.py`. Testes: `python3 -m unittest discover -s tools/studio_sync/tests`.
 
 </details>

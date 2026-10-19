@@ -22,3 +22,6 @@ release/
 *.tmp
 *.bak
 *~
+.browsers/
+.libs/
+.preparado
