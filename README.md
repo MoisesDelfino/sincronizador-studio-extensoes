@@ -6,7 +6,7 @@ Aplicação local para comparar e sincronizar scripts `JOB` e componentes do Stu
 
 ## Baixar e executar
 
-1. Baixe o pacote **StudioSync.zip** (ou clone este repositório) e extraia em uma pasta de sua preferência.
+1. Na [página do projeto](https://github.com/MoisesDelfino/sincronizador-studio-extensoes), clique em **Code → Download ZIP** e extraia em uma pasta de sua preferência. Se preferir, clone o repositório com `git clone`.
 2. Dê duplo clique no arquivo do seu sistema:
 
 | Sistema | Arquivo |
