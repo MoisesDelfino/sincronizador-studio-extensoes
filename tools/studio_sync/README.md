@@ -23,7 +23,7 @@ Aplicação web local para comparar e sincronizar os scripts do Studio Extensõe
 
 ## Preparação
 
-Para desenvolvimento, é necessário Python 3.10 ou mais recente e Chromium para Playwright. Os instaladores publicados já incluem essas dependências.
+Para desenvolvimento, é necessário Python 3.10 ou mais recente e Chromium para Playwright. Os aplicativos portáteis publicados já incluem essas dependências.
 
 ```bash
 python3 -m pip install --user -r tools/studio_sync/requirements.txt
@@ -32,7 +32,7 @@ playwright install chromium
 
 ## Execução
 
-Abra **Sincronizador do Studio Extensões** no menu de aplicativos. Para desenvolvimento, execute a partir da raiz deste projeto:
+Abra o aplicativo portátil **Studio Sync**. Para desenvolvimento, execute a partir da raiz deste projeto:
 
 ```bash
 python3 -m tools.studio_sync.main

@@ -1,4 +1,4 @@
-name: Build installers
+name: Build portable apps
 
 permissions:
   contents: write
@@ -15,14 +15,14 @@ jobs:
       matrix:
         include:
           - os: ubuntu-22.04
-            artifact: StudioSync-Linux-amd64.deb
+            artifact: StudioSync-Linux-amd64.tar.gz
           - os: windows-2022
-            artifact: StudioSync-Windows-Setup.exe
+            artifact: StudioSync-Windows-x64.zip
           - os: macos-15
-            artifact: StudioSync-macOS-AppleSilicon.dmg
+            artifact: StudioSync-macOS-AppleSilicon.zip
             mac_arch: AppleSilicon
           - os: macos-15-intel
-            artifact: StudioSync-macOS-Intel.dmg
+            artifact: StudioSync-macOS-Intel.zip
             mac_arch: Intel
     runs-on: ${{ matrix.os }}
     steps:
@@ -39,19 +39,22 @@ jobs:
           echo "PLAYWRIGHT_BROWSERS_PATH=$PLAYWRIGHT_BROWSERS_PATH" >> "$GITHUB_ENV"
       - run: python -m unittest discover -s tools/studio_sync/tests -q
       - run: pyinstaller --clean --noconfirm StudioSync.spec
-      - name: Package Linux
+      - name: Package portable app for Linux
         if: runner.os == 'Linux'
-        run: bash packaging/linux/build-deb.sh
-      - name: Install Inno Setup
+        run: |
+          mkdir -p release
+          tar -C dist -czf release/${{ matrix.artifact }} StudioSync
+      - name: Package portable app for Windows
         if: runner.os == 'Windows'
-        run: choco install innosetup --no-progress -y
-      - name: Package Windows
-        if: runner.os == 'Windows'
-        shell: cmd
-        run: '"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" packaging\windows\StudioSync.iss'
-      - name: Package macOS
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release | Out-Null
+          Compress-Archive -Path dist/StudioSync.exe -DestinationPath release/${{ matrix.artifact }}
+      - name: Package portable app for macOS
         if: runner.os == 'macOS'
-        run: bash packaging/macos/build-dmg.sh "${{ matrix.mac_arch }}"
+        run: |
+          mkdir -p release
+          ditto -c -k --sequesterRsrc --keepParent "dist/Studio Sync.app" "release/${{ matrix.artifact }}"
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
@@ -62,7 +65,7 @@ jobs:
     needs: build
     runs-on: ubuntu-22.04
     steps:
-      - name: Download installers
+      - name: Download portable apps
         uses: actions/download-artifact@v4
         with:
           path: release

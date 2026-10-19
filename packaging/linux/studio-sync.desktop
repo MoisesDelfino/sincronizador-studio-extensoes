@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Studio Sync
-Comment=Sincronize JOBs e componentes do Studio Extensões
-Exec=/opt/studio-sync/StudioSync
-Terminal=false
-Categories=Development;Utility;
-StartupNotify=true

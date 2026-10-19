@@ -11,7 +11,7 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# Builds e instaladores gerados
+# Builds e pacotes portáteis gerados
 build/
 dist/
 release/

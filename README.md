@@ -4,41 +4,40 @@ Aplicação local para comparar e sincronizar scripts `JOB` e componentes do Stu
 
 > **Antes de começar:** conecte o computador à rede corporativa ou à VPN da Betha. A autenticação e a consulta dos scripts dependem desse acesso.
 
-## Baixar o instalador
+## Baixar e executar
 
-Escolha o sistema operacional. Os links sempre apontam para a versão mais recente publicada:
+Escolha o sistema operacional. Os links sempre apontam para a versão portátil mais recente publicada:
 
 | Sistema operacional | Download | Compatibilidade |
 | --- | --- | --- |
-| Windows | **[Baixar instalador para Windows](https://github.com/MoisesDelfino/sincronizador-studio-extensoes/releases/latest/download/StudioSync-Windows-Setup.exe)** | Windows 10 ou 11, 64 bits |
-| Linux | **[Baixar instalador para Linux](https://github.com/MoisesDelfino/sincronizador-studio-extensoes/releases/latest/download/StudioSync-Linux-amd64.deb)** | Ubuntu, Debian e derivados, 64 bits |
-| macOS — Apple Silicon | **[Baixar para Mac com chip Apple](https://github.com/MoisesDelfino/sincronizador-studio-extensoes/releases/latest/download/StudioSync-macOS-AppleSilicon.dmg)** | Mac com chip M1, M2, M3 ou mais recente |
-| macOS — Intel | **[Baixar para Mac Intel](https://github.com/MoisesDelfino/sincronizador-studio-extensoes/releases/latest/download/StudioSync-macOS-Intel.dmg)** | Mac com processador Intel |
+| Windows | **[Baixar para Windows](https://github.com/MoisesDelfino/sincronizador-studio-extensoes/releases/latest/download/StudioSync-Windows-x64.zip)** | Windows 10 ou 11, 64 bits |
+| Linux | **[Baixar para Linux](https://github.com/MoisesDelfino/sincronizador-studio-extensoes/releases/latest/download/StudioSync-Linux-amd64.tar.gz)** | Linux 64 bits |
+| macOS — Apple Silicon | **[Baixar para Mac com chip Apple](https://github.com/MoisesDelfino/sincronizador-studio-extensoes/releases/latest/download/StudioSync-macOS-AppleSilicon.zip)** | Mac com chip M1, M2, M3 ou mais recente |
+| macOS — Intel | **[Baixar para Mac Intel](https://github.com/MoisesDelfino/sincronizador-studio-extensoes/releases/latest/download/StudioSync-macOS-Intel.zip)** | Mac com processador Intel |
 
-O instalador já inclui a aplicação, o Python e o navegador usado no login. Não é necessário instalar dependências separadamente.
+O pacote portátil já inclui a aplicação, o Python e o navegador usado no login. Não é necessário instalar dependências separadamente nem manter o Studio Sync aberto quando ele não estiver em uso.
 
-### Instalar no Windows
+### Executar no Windows
 
-1. Baixe `StudioSync-Windows-Setup.exe`.
-2. Abra o arquivo e avance pelo assistente.
-3. Mantenha marcada a opção para criar um atalho, se desejar.
-4. Ao final, clique em **Abrir Studio Sync**.
+1. Baixe `StudioSync-Windows-x64.zip`.
+2. Extraia o conteúdo para uma pasta de sua preferência.
+3. Abra `StudioSync.exe` quando quiser usar a ferramenta.
 
-### Instalar no Linux
+### Executar no Linux
 
-1. Baixe `StudioSync-Linux-amd64.deb`.
-2. Abra o arquivo com a loja de aplicativos do sistema.
-3. Clique em **Instalar**.
-4. Procure por **Studio Sync** no menu de aplicativos.
+1. Baixe `StudioSync-Linux-amd64.tar.gz`.
+2. Extraia o conteúdo para uma pasta de sua preferência.
+3. Abra o arquivo `StudioSync`. Se o sistema não permitir a primeira execução, marque **Permitir executar como programa** nas propriedades do arquivo.
 
-### Instalar no macOS
+### Executar no macOS
 
 1. Confira em **Menu Apple → Sobre Este Mac** se o processador é Apple ou Intel.
-2. Baixe o arquivo `.dmg` correspondente.
-3. Abra o arquivo e arraste **Studio Sync** para **Aplicativos**.
-4. Abra o aplicativo pelo Launchpad ou pela pasta **Aplicativos**.
+2. Baixe o arquivo `.zip` correspondente.
+3. Extraia o arquivo e abra **Studio Sync.app**. Se desejar, mova-o para a pasta **Aplicativos**.
 
-> Os instaladores ainda não possuem assinatura digital corporativa. Caso o Windows ou o macOS mostre uma proteção do sistema, confirme a abertura somente se o arquivo tiver sido baixado desta página oficial do projeto.
+> Os aplicativos ainda não possuem assinatura digital corporativa. Caso o Windows ou o macOS mostre uma proteção do sistema, confirme a abertura somente se o arquivo tiver sido baixado desta página oficial do projeto.
+
+O Studio Sync funciona somente enquanto o aplicativo está aberto. Não é preciso configurá-lo para iniciar com o computador: abra-o quando precisar sincronizar e encerre-o ao terminar.
 
 ## Primeiro uso
 
@@ -75,12 +74,12 @@ playwright install chromium
 python3 sincronizar_studio.py
 ```
 
-### Gerar e publicar instaladores
+### Gerar e publicar os aplicativos portáteis
 
-O workflow `.github/workflows/build-installers.yml` executa os testes e constrói cada instalador no sistema operacional correspondente.
+O workflow `.github/workflows/build-portable-apps.yml` executa os testes, constrói o aplicativo no sistema operacional correspondente e o compacta para distribuição.
 
 - A execução manual disponibiliza os arquivos na página da execução do GitHub Actions.
-- Uma tag no formato `v*`, por exemplo `v0.3.0`, cria uma GitHub Release e publica automaticamente os quatro instaladores usados pelos links deste README.
+- Uma tag no formato `v*`, por exemplo `v0.3.0`, cria uma GitHub Release e publica automaticamente os quatro pacotes portáteis usados pelos links deste README.
 
 Exemplo de publicação:
 
