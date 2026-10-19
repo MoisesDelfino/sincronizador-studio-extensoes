@@ -24,12 +24,16 @@ Na primeira execução o aplicativo prepara o ambiente sozinho (ambiente Python 
 
 O Studio Sync funciona somente enquanto está aberto.
 
+## Acesso a entidades e sistemas
+
+A ferramenta lista apenas as **entidades e sistemas aos quais o seu usuário tem acesso**. Se uma entidade ou sistema de que você precisa não aparecer, solicite a liberação pelo **Betha Admin**. Depois de concedido o acesso, use **Trocar conta** ou entre novamente para atualizar a lista.
+
 ## Primeiro uso
 
 1. Conecte-se à rede Betha ou à VPN.
 2. Abra o Studio Sync pelo arquivo `Abrir Studio Sync`.
 3. Clique em **Entrar no Studio Extensões** e conclua o login e o MFA na página oficial da Betha.
-4. Confira a entidade, escolha o sistema e selecione a pasta do repositório local.
+4. Confira a entidade (somente as que você tem acesso são listadas), escolha o sistema e selecione a pasta do repositório local.
 5. Clique em **Analisar diferenças**. Apenas a página exibida terá o conteúdo carregado.
 6. Pesquise ou filtre os scripts, selecione os desejados e clique em **Sincronizar selecionados**.
 
