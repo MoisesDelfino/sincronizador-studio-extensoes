@@ -1,0 +1,24 @@
+# Ambientes e caches Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+
+# IDEs e sistema operacional
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Builds e instaladores gerados
+build/
+dist/
+release/
+.playwright-browsers/
+
+# Arquivos temporários e logs
+*.log
+*.tmp
+*.bak
+*~

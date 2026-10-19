@@ -1,0 +1,7 @@
+Package: studio-sync
+Version: @VERSION@
+Section: devel
+Priority: optional
+Architecture: amd64
+Maintainer: Betha Sistemas
+Description: Sincronizador local de scripts do Studio Extensões

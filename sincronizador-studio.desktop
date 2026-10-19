@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Sincronizador do Studio Extensões
+Comment=Sincronize JOBs e componentes com um repositório local
+Exec=/usr/bin/python3 /home/moises.campos/Documentos/ProjetosVariados/sincronizador-studio-extensoes/sincronizar_studio.py
+Path=/home/moises.campos/Documentos/ProjetosVariados/sincronizador-studio-extensoes
+Terminal=false
+Categories=Development;Utility;
+StartupNotify=true

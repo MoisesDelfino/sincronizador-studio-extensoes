@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#11131c">
+  <title>Studio Extensões | Sincronizador</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="brand"><span class="mark">B</span><div><strong>Studio Extensões</strong><small>Sincronizador local</small></div></div>
+      <button class="quiet" id="close">Encerrar</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-heading">
+      <div><span class="eyebrow">SINCRONIZAÇÃO</span><h1>Scripts e componentes</h1><p>Compare o Studio Extensões com seu repositório local.</p></div>
+      <div class="status"><span class="status-dot"></span><div><small>Status</small><strong id="status">Carregando...</strong></div></div>
+    </section>
+
+    <aside class="network-notice" role="note" aria-label="Requisito de conexão">
+      <span class="network-notice-icon" aria-hidden="true">⌁</span>
+      <div><strong>Conexão com a rede Betha necessária</strong><span>Antes de autenticar ou sincronizar, conecte-se à rede corporativa ou à VPN da Betha.</span></div>
+    </aside>
+
+    <section class="next-step" id="next-step">
+      <span class="next-step-number" id="next-step-number">1</span>
+      <div><small>PRÓXIMO PASSO</small><strong id="next-step-text">Entre com sua conta Betha para começar.</strong></div>
+    </section>
+
+    <section class="setup">
+      <div class="section-title"><span>Configuração</span><small>Defina a origem e o destino da sincronização</small></div>
+
+      <div class="setup-grid">
+        <div class="field account-field">
+          <label>Conta Betha</label>
+          <div class="account" id="account">Nenhuma sessão conectada</div>
+          <button class="button secondary" id="login">Entrar no Studio Extensões <span>↗</span></button>
+        </div>
+
+        <div class="field">
+          <label for="entity">Entidade</label>
+          <select id="entity" disabled><option>Autentique-se primeiro</option></select>
+        </div>
+
+        <div class="field">
+          <label for="access">Sistema</label>
+          <select id="access" disabled><option>Selecione uma entidade</option></select>
+        </div>
+
+        <div class="field destination-field">
+          <label for="folder">Repositório local</label>
+          <div class="folder"><input id="folder" placeholder="Nenhuma pasta selecionada" readonly><button id="choose">Escolher</button></div>
+        </div>
+      </div>
+
+      <div class="setup-footer">
+        <div class="toggles">
+          <label><input id="job" type="checkbox" checked> Scripts JOB</label>
+          <label><input id="component" type="checkbox" checked> Componentes</label>
+        </div>
+        <button class="button primary" id="analyze">Analisar diferenças <span>→</span></button>
+      </div>
+    </section>
+
+    <section class="results">
+      <div class="results-head">
+        <div><span class="eyebrow">PRÉVIA</span><h2>Alterações encontradas</h2></div>
+      </div>
+
+      <div class="metrics">
+        <div><b id="create">0</b><span>Novos</span></div>
+        <div><b id="update">0</b><span>Atualizações</span></div>
+        <div><b id="unchanged">0</b><span>Inalterados</span></div>
+        <div><b id="pending">0</b><span>Aguardando análise</span></div>
+        <div><b id="problems">0</b><span>Conflitos / erros</span></div>
+      </div>
+
+      <div class="result-tools">
+        <div class="filter-tools">
+          <div class="script-search"><span>⌕</span><input id="script-search" type="search" placeholder="Pesquisar script por nome ou tipo"></div>
+          <fieldset class="status-filters" aria-label="Filtrar pela situação">
+            <label><input class="status-filter" type="checkbox" value="CRIAR" checked><span>Criar</span></label>
+            <label><input class="status-filter" type="checkbox" value="ATUALIZAR" checked><span>Atualizar</span></label>
+            <label><input class="status-filter" type="checkbox" value="INALTERADO" checked><span>Inalterado</span></label>
+            <label><input class="status-filter" type="checkbox" value="CONFLITO,ERRO" checked><span>Conflito/erro</span></label>
+          </fieldset>
+        </div>
+        <div class="selection-tools">
+          <label class="select-visible"><input id="select-page" type="checkbox"> Selecionar página</label>
+          <button class="quiet select-all" id="select-all">Selecionar todos</button>
+          <span class="selection-count" id="selection-count">0 selecionados</span>
+          <button class="button primary" id="sync" disabled>Sincronizar selecionados</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th class="select-column"></th><th>Situação</th><th>Tipo</th><th>Arquivo</th><th>Detalhe</th></tr></thead>
+          <tbody id="rows"><tr class="empty"><td colspan="5">Analise o repositório para visualizar as diferenças.</td></tr></tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <span id="page-summary">Nenhum item</span>
+        <div class="page-controls">
+          <label>Itens por página <select id="page-size"><option>10</option><option selected>20</option><option>50</option></select></label>
+          <button class="quiet" id="previous-page">← Anterior</button>
+          <strong id="page-indicator">Página 1 de 1</strong>
+          <button class="quiet" id="next-page">Próxima →</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="folder-modal" hidden>
+    <section class="folder-dialog" role="dialog" aria-modal="true" aria-labelledby="folder-title">
+      <div class="folder-dialog-head">
+        <div><span class="eyebrow">REPOSITÓRIO LOCAL</span><h2 id="folder-title">Escolha uma pasta</h2></div>
+        <button class="quiet" id="folder-cancel" aria-label="Fechar">Fechar</button>
+      </div>
+      <div class="folder-location">
+        <button class="quiet" id="folder-up" title="Pasta anterior">←</button>
+        <input id="folder-current" aria-label="Caminho da pasta" spellcheck="false">
+        <button class="quiet" id="folder-go">Ir</button>
+      </div>
+      <div class="folder-list" id="folder-list"></div>
+      <div class="folder-dialog-actions">
+        <span id="folder-message"></span>
+        <button class="button primary" id="folder-select">Selecionar esta pasta</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="confirm-modal" hidden>
+    <section class="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-description">
+      <div class="confirm-icon" aria-hidden="true">✓</div>
+      <div class="confirm-content">
+        <span class="eyebrow">CONFIRMAR SINCRONIZAÇÃO</span>
+        <h2 id="confirm-title">Sincronizar arquivos selecionados?</h2>
+        <p id="confirm-description">Os arquivos locais serão criados ou atualizados com o conteúdo do Studio Extensões.</p>
+        <div class="confirm-summary"><strong id="confirm-count">0</strong><span>arquivo(s) selecionado(s)</span></div>
+      </div>
+      <div class="confirm-actions">
+        <button class="button secondary" id="confirm-cancel">Cancelar</button>
+        <button class="button primary" id="confirm-accept">Sincronizar agora <span>→</span></button>
+      </div>
+    </section>
+  </div>
+
+  <div class="loading-overlay" id="loading" hidden aria-live="polite" aria-busy="true">
+    <div class="loading-card">
+      <span class="spinner"></span>
+      <div><strong>Processando</strong><p id="loading-message">Aguarde um momento...</p></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="/app.js"></script>
+  <script src="/source.js"></script>
+</body>
+</html>

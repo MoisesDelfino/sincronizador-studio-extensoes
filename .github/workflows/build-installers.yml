@@ -1,0 +1,74 @@
+name: Build installers
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            artifact: StudioSync-Linux-amd64.deb
+          - os: windows-2022
+            artifact: StudioSync-Windows-Setup.exe
+          - os: macos-15
+            artifact: StudioSync-macOS-AppleSilicon.dmg
+            mac_arch: AppleSilicon
+          - os: macos-15-intel
+            artifact: StudioSync-macOS-Intel.dmg
+            mac_arch: Intel
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install -r requirements-build.txt
+      - name: Install bundled Chromium
+        shell: bash
+        run: |
+          export PLAYWRIGHT_BROWSERS_PATH="$GITHUB_WORKSPACE/.playwright-browsers"
+          python -m playwright install chromium
+          echo "PLAYWRIGHT_BROWSERS_PATH=$PLAYWRIGHT_BROWSERS_PATH" >> "$GITHUB_ENV"
+      - run: python -m unittest discover -s tools/studio_sync/tests -q
+      - run: pyinstaller --clean --noconfirm StudioSync.spec
+      - name: Package Linux
+        if: runner.os == 'Linux'
+        run: bash packaging/linux/build-deb.sh
+      - name: Install Inno Setup
+        if: runner.os == 'Windows'
+        run: choco install innosetup --no-progress -y
+      - name: Package Windows
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: '"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" packaging\windows\StudioSync.iss'
+      - name: Package macOS
+        if: runner.os == 'macOS'
+        run: bash packaging/macos/build-dmg.sh "${{ matrix.mac_arch }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: release/${{ matrix.artifact }}
+
+  publish-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download installers
+        uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          generate_release_notes: true
+          files: release/*

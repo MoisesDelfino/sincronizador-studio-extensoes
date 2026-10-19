@@ -1,0 +1,2 @@
+-r tools/studio_sync/requirements.txt
+pyinstaller>=6.11,<7
