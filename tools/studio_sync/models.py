@@ -8,10 +8,17 @@ from pathlib import Path
 class ArtifactKind(str, Enum):
     JOB = "JOB"
     COMPONENT = "COMPONENTE"
+    CRITIQUE = "CRITICA"
+    DYNAMIC_SOURCE = "FONTE_DINAMICA"
 
     @property
     def directory(self) -> str:
-        return "" if self is ArtifactKind.JOB else "Componentes"
+        return {
+            ArtifactKind.JOB: "",
+            ArtifactKind.COMPONENT: "Componentes",
+            ArtifactKind.CRITIQUE: "Criticas",
+            ArtifactKind.DYNAMIC_SOURCE: "FontesDinamicas",
+        }[self]
 
 
 class ChangeKind(str, Enum):

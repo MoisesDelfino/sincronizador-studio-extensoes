@@ -273,6 +273,26 @@ class StudioApiTests(unittest.TestCase):
         self.assertEqual(["A", "B", "C"], [item["titulo"] for item in summaries])
         self.assertEqual(2, session.calls[1][1]["params"]["offset"])  # type: ignore[index]
 
+    def test_filters_each_supported_artifact_kind_with_official_api_value(self) -> None:
+        session = FakeSession([
+            FakeResponse({"content": [], "hasNext": False}) for _kind in ArtifactKind
+        ])
+        api = StudioApi(SessionCredentials("token", "context"), session=session)  # type: ignore[arg-type]
+
+        for kind in ArtifactKind:
+            api.list_artifact_summaries(kind)
+
+        filters = [call[1]["params"]["filter"] for call in session.calls]  # type: ignore[index]
+        self.assertEqual(
+            [
+                "tipo = 'SCRIPT' and propriedades in(new Propriedade('tipoScript', 'JOB'))",
+                "tipo = 'SCRIPT' and propriedades in(new Propriedade('tipoScript', 'COMPONENTE'))",
+                "tipo = 'SCRIPT' and propriedades in(new Propriedade('tipoScript', 'CRITICA'))",
+                "tipo = 'SCRIPT' and propriedades in(new Propriedade('tipoScript', 'FONTE_DINAMICA'))",
+            ],
+            filters,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

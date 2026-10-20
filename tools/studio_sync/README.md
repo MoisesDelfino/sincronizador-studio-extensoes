@@ -1,12 +1,12 @@
 # Sincronizador do Studio Extensões
 
-Aplicação web local para comparar e sincronizar os scripts do Studio Extensões com um repositório escolhido pelo usuário.
+Aplicação web local para comparar e sincronizar scripts `JOB`, componentes, críticas e fontes dinâmicas do Studio Extensões com um repositório escolhido pelo usuário.
 
 ## Comportamento
 
 - antes de criar um arquivo, o sincronizador procura recursivamente pelo mesmo nome em toda a pasta escolhida;
-- se o arquivo já existir em qualquer subpasta, ele é comparado e atualizado naquele mesmo local, independentemente de ser `JOB` ou `COMPONENTE`;
-- somente arquivos inexistentes usam o destino padrão: `JOB` na pasta escolhida e `COMPONENTE` na subpasta `Componentes`;
+- se o arquivo já existir em qualquer subpasta, ele é comparado e atualizado naquele mesmo local, independentemente do tipo do artefato;
+- somente arquivos inexistentes usam o destino padrão: `JOB` na pasta escolhida, `COMPONENTE` em `Componentes`, `CRITICA` em `Criticas` e `FONTE_DINAMICA` em `FontesDinamicas`;
 - caracteres que não podem existir em nomes de arquivos (`/`, `\\`, `:`, `*` e equivalentes) são convertidos para ` - `;
 - duas ocorrências locais com o mesmo nome são tratadas como conflito para evitar atualizar o arquivo errado;
 - o conteúdo remoto é mantido em cache por sistema, script e revisão; revisões já conhecidas não são baixadas novamente;

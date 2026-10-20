@@ -259,8 +259,12 @@ class Handler(BaseHTTPRequestHandler):
             kinds.append(ArtifactKind.JOB)
         if body.get("component"):
             kinds.append(ArtifactKind.COMPONENT)
+        if body.get("critique"):
+            kinds.append(ArtifactKind.CRITIQUE)
+        if body.get("dynamicSource"):
+            kinds.append(ArtifactKind.DYNAMIC_SOURCE)
         if not kinds:
-            raise ValueError("Selecione JOB e/ou Componentes.")
+            raise ValueError("Selecione ao menos um tipo de artefato.")
         STATE.update("Selecionando a entidade...", True)
         STATE.api.select_access(STATE.accesses[access_index])
         STATE.root = root

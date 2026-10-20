@@ -35,7 +35,7 @@ class SynchronizerTests(unittest.TestCase):
         self.assertEqual(["Script 3", "Script 4"], api.fetched)
         self.assertEqual(2, len(changes))
 
-    def test_analyzes_and_applies_jobs_and_components(self) -> None:
+    def test_analyzes_and_applies_all_artifact_kinds(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "Existente.groovy").write_text("antigo", encoding="utf-8")
@@ -47,20 +47,42 @@ class SynchronizerTests(unittest.TestCase):
                 ArtifactKind.COMPONENT: [
                     RemoteArtifact(ArtifactKind.COMPONENT, "Componente", "3", "30", "componente")
                 ],
+                ArtifactKind.CRITIQUE: [
+                    RemoteArtifact(ArtifactKind.CRITIQUE, "Critica", "4", "40", "critica")
+                ],
+                ArtifactKind.DYNAMIC_SOURCE: [
+                    RemoteArtifact(
+                        ArtifactKind.DYNAMIC_SOURCE, "Fonte", "5", "50", "fonte dinamica"
+                    )
+                ],
             }
             synchronizer = Synchronizer(FakeApi(artifacts), root)  # type: ignore[arg-type]
-            changes = synchronizer.analyze([ArtifactKind.JOB, ArtifactKind.COMPONENT])
+            changes = synchronizer.analyze(list(ArtifactKind))
 
             self.assertEqual(
-                [ChangeKind.UPDATE, ChangeKind.CREATE, ChangeKind.CREATE],
+                [
+                    ChangeKind.UPDATE,
+                    ChangeKind.CREATE,
+                    ChangeKind.CREATE,
+                    ChangeKind.CREATE,
+                    ChangeKind.CREATE,
+                ],
                 [change.status for change in changes],
             )
-            self.assertEqual(3, synchronizer.apply(changes))
+            self.assertEqual(5, synchronizer.apply(changes))
             self.assertEqual("novo", (root / "Existente.groovy").read_text(encoding="utf-8"))
             self.assertEqual("codigo", (root / "Novo.groovy").read_text(encoding="utf-8"))
             self.assertEqual(
                 "componente",
                 (root / "Componentes" / "Componente.groovy").read_text(encoding="utf-8"),
+            )
+            self.assertEqual(
+                "critica",
+                (root / "Criticas" / "Critica.groovy").read_text(encoding="utf-8"),
+            )
+            self.assertEqual(
+                "fonte dinamica",
+                (root / "FontesDinamicas" / "Fonte.groovy").read_text(encoding="utf-8"),
             )
 
     def test_sanitizes_path_separator_in_title(self) -> None:

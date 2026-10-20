@@ -326,7 +326,9 @@ $('#analyze').onclick = () => action(async () => {
       access: +$('#access').value,
       folder: $('#folder').value,
       job: $('#job').checked,
-      component: $('#component').checked
+      component: $('#component').checked,
+      critique: $('#critique').checked,
+      dynamicSource: $('#dynamic-source').checked
     })
   });
   await loadChanges(true);
