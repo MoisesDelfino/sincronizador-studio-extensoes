@@ -1,6 +1,6 @@
 # Sincronizador do Studio Extensões
 
-Aplicação web local para comparar e sincronizar scripts `JOB`, componentes, críticas e fontes dinâmicas do Studio Extensões com um repositório escolhido pelo usuário.
+Aplicação web local para comparar e sincronizar scripts, componentes, críticas e fontes dinâmicas do Studio Extensões com um repositório escolhido pelo usuário.
 
 ## Comportamento
 
