@@ -189,8 +189,10 @@ function renderChanges() {
   const shown = rows.length !== pageItems.length ? ` • ${rows.length} exibido(s)` : '';
   $('#page-summary').textContent = searched.length ? `${first}–${last} de ${searched.length} item(ns)${shown}` : 'Nenhum item';
   $('#page-indicator').textContent = `Página ${currentPage} de ${pageCount}`;
+  $('#first-page').disabled = busy || currentPage <= 1;
   $('#previous-page').disabled = busy || currentPage <= 1;
   $('#next-page').disabled = busy || currentPage >= pageCount;
+  $('#last-page').disabled = busy || currentPage >= pageCount;
   updateSelection();
 }
 
@@ -311,12 +313,19 @@ $('#select-all').onclick = async () => {
 $('#page-size').onchange = async event => {
   pageSize = Number(event.currentTarget.value); currentPage = 1; await loadCurrentPage();
 };
+$('#first-page').onclick = async () => {
+  if (currentPage > 1) { currentPage = 1; await loadCurrentPage(); }
+};
 $('#previous-page').onclick = async () => {
   if (currentPage > 1) { currentPage--; await loadCurrentPage(); }
 };
 $('#next-page').onclick = async () => {
   const pageCount = Math.max(1, Math.ceil(searchedChanges().length / pageSize));
   if (currentPage < pageCount) { currentPage++; await loadCurrentPage(); }
+};
+$('#last-page').onclick = async () => {
+  const pageCount = Math.max(1, Math.ceil(searchedChanges().length / pageSize));
+  if (currentPage < pageCount) { currentPage = pageCount; await loadCurrentPage(); }
 };
 
 $('#analyze').onclick = () => action(async () => {
