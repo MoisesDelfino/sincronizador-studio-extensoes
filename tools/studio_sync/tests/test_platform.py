@@ -58,5 +58,24 @@ class LinuxIconTests(unittest.TestCase):
             installed = home / ".local/share/icons/hicolor/512x512/apps/studio-sync.png"
             self.assertEqual(installed.read_bytes(), b"custom-icon")
 
+
+class RepositoryUpdateTests(unittest.TestCase):
+    @patch.object(iniciar.shutil, "which", return_value="/usr/bin/git")
+    @patch.object(iniciar.subprocess, "run")
+    def test_updates_with_fast_forward_only_before_starting(self, run: Mock, _which: Mock) -> None:
+        run.return_value = Mock(returncode=0, stdout="Already up to date.\n", stderr="")
+        with patch.object(iniciar, "RAIZ", Path(".")):
+            self.assertTrue(iniciar.atualizar_repositorio({"EXISTING": "value"}))
+        self.assertEqual(["git", "pull", "--ff-only"], run.call_args.args[0])
+        self.assertEqual("0", run.call_args.kwargs["env"]["GIT_TERMINAL_PROMPT"])
+        self.assertEqual(30, run.call_args.kwargs["timeout"])
+
+    @patch.object(iniciar.shutil, "which", return_value="/usr/bin/git")
+    @patch.object(iniciar.subprocess, "run")
+    def test_failed_update_does_not_block_local_start(self, run: Mock, _which: Mock) -> None:
+        run.return_value = Mock(returncode=1, stdout="", stderr="local changes")
+        with patch.object(iniciar, "RAIZ", Path(".")):
+            self.assertFalse(iniciar.atualizar_repositorio({}))
+
 if __name__ == "__main__":
     unittest.main()
