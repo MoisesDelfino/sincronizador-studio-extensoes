@@ -6,18 +6,34 @@ Ferramenta local para comparar e sincronizar scripts, componentes, críticas, fo
 
 - acesso à rede corporativa ou à VPN da Betha;
 - internet na primeira execução;
-- Python 3.10 ou mais recente;
-- Git, para receber atualizações automáticas.
+- [Git](https://git-scm.com/downloads), para clonar e atualizar a ferramenta;
+- [Python 3.10 ou mais recente](https://www.python.org/downloads/).
 
-No Windows, o inicializador tenta instalar o Python pelo `winget` quando necessário.
+Não é necessário instalar pacotes Python, executar `pip` ou executar `npm`. O inicializador prepara as dependências e o navegador de autenticação automaticamente dentro da pasta do projeto.
 
-## Instalação
+No Windows, se o Python não estiver disponível, o inicializador tentará instalá-lo pelo `winget`. No Ubuntu ou Debian, se necessário, instale os requisitos com:
 
-Clone o [repositório do Studio Sync](https://github.com/MoisesDelfino/sincronizador-studio-extensoes) para que a ferramenta possa se atualizar automaticamente ao abrir.
+```bash
+sudo apt install git python3 python3-venv python3-pip
+```
 
-Também é possível usar **Code → Download ZIP**, mas essa opção não recebe atualizações automáticas. Quando houver uma nova versão, será necessário baixar e extrair o ZIP novamente.
+## Instalar e abrir
 
-## Como abrir
+### 1. Clonar o projeto
+
+No terminal, execute:
+
+```bash
+git clone https://github.com/MoisesDelfino/sincronizador-studio-extensoes.git
+```
+
+Isso criará a pasta `sincronizador-studio-extensoes`. Abra essa pasta no explorador de arquivos.
+
+Se preferir uma interface gráfica, use o GitHub Desktop e escolha **File → Clone repository → URL**, informando o mesmo endereço do repositório.
+
+### 2. Abrir o inicializador
+
+Dentro da pasta clonada, abra o arquivo correspondente ao seu sistema:
 
 | Sistema | Arquivo |
 | --- | --- |
@@ -25,7 +41,9 @@ Também é possível usar **Code → Download ZIP**, mas essa opção não receb
 | macOS | `Abrir Studio Sync.command` |
 | Linux | `Abrir Studio Sync.desktop` |
 
-Na primeira abertura, aguarde a preparação automática do ambiente e do navegador usado na autenticação.
+### 3. Aguardar a primeira preparação
+
+Na primeira abertura, a ferramenta cria um ambiente Python próprio, instala as dependências e baixa o navegador usado na autenticação. Esse processo requer internet e pode levar alguns minutos. Nas próximas aberturas, a inicialização será mais rápida.
 
 - **macOS:** na primeira vez, clique com o botão direito no arquivo `.command` e selecione **Abrir**.
 - **Linux:** se necessário, habilite **Permitir executar como programa** nas propriedades do arquivo `.desktop`.
