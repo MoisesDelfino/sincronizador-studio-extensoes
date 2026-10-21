@@ -11,7 +11,11 @@ class WebSmokeTests(unittest.TestCase):
         state = AppState().public()
         self.assertIn("Desfazer última sincronização", html)
         self.assertIn('id="loading-cancel"', html)
+        self.assertIn('id="confirm-eyebrow"', html)
         self.assertIn('class="type-column"', html)
+        javascript = (STATIC / "app.js").read_text(encoding="utf-8")
+        self.assertNotIn("window.confirm", javascript)
+        self.assertIn("CONFIRMAR RESTAURAÇÃO", javascript)
         self.assertFalse(state["authenticated"])
         self.assertFalse(state["canUndo"])
 

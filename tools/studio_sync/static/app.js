@@ -52,13 +52,20 @@ function synchronizationToast(result) {
   toastTimer = setTimeout(() => element.classList.remove('show'), 9000);
 }
 
-function confirmSynchronization(count) {
+function confirmAction({eyebrow, title, description, acceptLabel, icon = '✓', count = null}) {
   return new Promise(resolve => {
     const modal = $('#confirm-modal');
     const accept = $('#confirm-accept');
     const cancel = $('#confirm-cancel');
+    const summary = $('#confirm-summary');
     const previousFocus = document.activeElement;
-    $('#confirm-count').textContent = count;
+    $('#confirm-eyebrow').textContent = eyebrow;
+    $('#confirm-title').textContent = title;
+    $('#confirm-description').textContent = description;
+    $('#confirm-icon').textContent = icon;
+    accept.textContent = acceptLabel;
+    summary.hidden = count === null;
+    if (count !== null) $('#confirm-count').textContent = count;
     modal.hidden = false;
     document.body.classList.add('modal-open');
 
@@ -77,6 +84,16 @@ function confirmSynchronization(count) {
     modal.onclick = event => { if (event.target === modal) finish(false); };
     document.addEventListener('keydown', onKeydown);
     requestAnimationFrame(() => accept.focus());
+  });
+}
+
+function confirmSynchronization(count) {
+  return confirmAction({
+    eyebrow: 'CONFIRMAR SINCRONIZAÇÃO',
+    title: 'Sincronizar arquivos selecionados?',
+    description: 'Os arquivos locais serão criados ou atualizados com o conteúdo do Studio Extensões.',
+    acceptLabel: 'Sincronizar agora →',
+    count
   });
 }
 
@@ -403,7 +420,13 @@ $('#sync').onclick = async () => {
 };
 
 $('#undo').onclick = async () => {
-  if (!window.confirm('Desfazer a última sincronização e restaurar os arquivos anteriores?')) return;
+  if (!await confirmAction({
+    eyebrow: 'CONFIRMAR RESTAURAÇÃO',
+    title: 'Desfazer a última sincronização?',
+    description: 'Os arquivos alterados na última sincronização serão substituídos pelas versões anteriores.',
+    acceptLabel: 'Desfazer sincronização',
+    icon: '↶'
+  })) return;
   await action(async signal => {
     const data = await request('/api/undo', {method: 'POST', signal});
     toast(`Última sincronização desfeita: ${data.restored} arquivo(s) restaurado(s).`);
