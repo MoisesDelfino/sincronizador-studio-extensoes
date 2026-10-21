@@ -232,6 +232,7 @@ async function refresh() {
   $('#pending').textContent = state.counts.PENDENTE || 0;
   $('#problems').textContent = state.counts.CONFLITO + state.counts.ERRO;
   document.querySelectorAll('button').forEach(button => button.disabled = busy);
+  $('#undo').disabled = busy || !state.canUndo;
   showLoading(busy, state.status);
   renderChanges();
   updateAnalyzeAvailability();
@@ -358,6 +359,16 @@ $('#sync').onclick = async () => {
     synchronizationToast(data);
     selectedChanges.clear();
     await loadChanges();
+  });
+};
+
+$('#undo').onclick = async () => {
+  if (!window.confirm('Desfazer a última sincronização e restaurar os arquivos anteriores?')) return;
+  await action(async () => {
+    const data = await request('/api/undo', {method: 'POST'});
+    toast(`Última sincronização desfeita: ${data.restored} arquivo(s) restaurado(s).`);
+    selectedChanges.clear();
+    await loadChanges(true);
   });
 };
 

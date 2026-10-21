@@ -18,6 +18,7 @@ Aplicação web local para comparar e sincronizar scripts, componentes, crítica
 - o carregamento fica destacado durante operações demoradas e a interface indica continuamente o próximo passo;
 - a listagem é carregada primeiro e o `codigoFonte` é solicitado somente quando a página correspondente é aberta; páginas já analisadas permanecem em cache;
 - a análise não altera arquivos; somente o botão **Sincronizar** grava as mudanças;
+- antes de gravar, a aplicação cria um snapshot local; a última sincronização pode ser desfeita enquanto seus arquivos não tiverem sido editados novamente;
 - usuário, senha e MFA não são armazenados pelo sincronizador;
 - a sessão é preservada no perfil privado do Chromium, como em um navegador comum, e pode ser apagada por **Trocar conta**.
 

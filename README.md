@@ -41,6 +41,12 @@ Arquivos novos são organizados por tipo: scripts na pasta escolhida, componente
 
 A análise apenas apresenta uma prévia. Nenhum arquivo é alterado antes da confirmação em **Sincronizar agora**.
 
+## Segurança e restauração
+
+Antes de cada sincronização, o Studio Sync guarda uma cópia dos arquivos que serão alterados. Use **Desfazer última sincronização** para restaurar arquivos atualizados e remover os que foram criados naquela operação.
+
+O aplicativo não desfaz a operação se detectar que algum dos arquivos foi editado posteriormente. Essa proteção evita substituir trabalho novo por uma cópia antiga. Os snapshots ficam na pasta de dados local do Studio Sync, fora do repositório selecionado.
+
 ## Privacidade e funcionamento
 
 - usuário, senha e código MFA são informados somente na página oficial da Betha;
@@ -55,6 +61,8 @@ Consulte a [documentação detalhada](tools/studio_sync/README.md) para conhecer
 <details>
 <summary><strong>Informações para desenvolvimento</strong></summary>
 
-Execução pelo código-fonte (Python 3.10+): `python3 iniciar.py`. Testes: `python3 -m unittest discover -s tools/studio_sync/tests`.
+Execução pelo código-fonte (Python 3.10+): `python3 iniciar.py`. Validação completa: `python3 validar.py`.
+
+Consulte [CONTRIBUTING.md](CONTRIBUTING.md) para o fluxo de branches, Pull Request, smoke test, publicação e rollback.
 
 </details>

@@ -13,6 +13,7 @@ from typing import Any
 
 from .api import StudioApi
 from .auth import authenticate_interactively
+from .backup import BackupStore
 from .models import AccessOption, ArtifactKind, ChangeKind, SyncChange
 from .sync import Synchronizer
 
@@ -32,6 +33,7 @@ class AppState:
         self.changes: list[SyncChange | None] = []
         self.duplicate_names: set[str] = set()
         self.root: Path | None = None
+        self.last_backup_id = ""
 
     def update(self, status: str, busy: bool | None = None) -> None:
         with self.lock:
@@ -82,6 +84,7 @@ class AppState:
                 ],
                 "entities": sorted(entities.values(), key=lambda item: item["label"].casefold()),
                 "counts": counts,
+                "canUndo": bool(self.last_backup_id and self.root),
             }
 
 
@@ -157,6 +160,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.load_page()
             elif self.path == "/api/apply":
                 self.apply_changes()
+            elif self.path == "/api/undo":
+                self.undo_changes()
             elif self.path == "/api/shutdown":
                 self.send_json({"ok": True})
                 threading.Thread(target=self.server.shutdown, daemon=True).start()
@@ -180,6 +185,7 @@ class Handler(BaseHTTPRequestHandler):
         STATE.summaries = []
         STATE.changes = []
         STATE.duplicate_names = set()
+        STATE.last_backup_id = ""
         STATE.preferred_entity_id = credentials.selected_entity_id
         STATE.accesses = accesses
         STATE.user = str(user.get("name") or user.get("nome") or user.get("email") or "Autenticado")
@@ -268,6 +274,7 @@ class Handler(BaseHTTPRequestHandler):
         STATE.update("Selecionando a entidade...", True)
         STATE.api.select_access(STATE.accesses[access_index])
         STATE.root = root
+        STATE.last_backup_id = BackupStore().latest_applied(root)
         STATE.api.cache_hits = 0
         STATE.api.cache_misses = 0
         summaries: list[tuple[ArtifactKind, dict[str, Any]]] = []
@@ -358,7 +365,9 @@ class Handler(BaseHTTPRequestHandler):
             and change.status in (ChangeKind.CREATE, ChangeKind.UPDATE)
         }
         STATE.update("Gravando arquivos com segurança...", True)
-        count = Synchronizer(STATE.api, STATE.root).apply(selected)
+        synchronizer = Synchronizer(STATE.api, STATE.root)
+        count = synchronizer.apply(selected)
+        STATE.last_backup_id = synchronizer.last_backup_id
         for index in applied_indexes:
             change = STATE.changes[index]
             if change is not None:
@@ -371,6 +380,18 @@ class Handler(BaseHTTPRequestHandler):
             "items": details,
             "remaining": len(STATE.changes),
         })
+
+    def undo_changes(self) -> None:
+        if STATE.api is None or STATE.root is None or not STATE.last_backup_id:
+            raise ValueError("Não há uma sincronização desta sessão para desfazer.")
+        STATE.update("Restaurando os arquivos anteriores...", True)
+        count = Synchronizer(STATE.api, STATE.root).undo(STATE.last_backup_id)
+        STATE.last_backup_id = ""
+        STATE.summaries = []
+        STATE.changes = []
+        STATE.duplicate_names = set()
+        STATE.update(f"Última sincronização desfeita: {count} arquivo(s) restaurado(s).", False)
+        self.send_json({"restored": count})
 
 
 def run() -> None:

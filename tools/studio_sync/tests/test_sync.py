@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from tools.studio_sync.backup import BackupStore
 from tools.studio_sync.models import ArtifactKind, ChangeKind, RemoteArtifact
 from tools.studio_sync.sync import Synchronizer
 
@@ -56,7 +57,9 @@ class SynchronizerTests(unittest.TestCase):
                     )
                 ],
             }
-            synchronizer = Synchronizer(FakeApi(artifacts), root)  # type: ignore[arg-type]
+            synchronizer = Synchronizer(
+                FakeApi(artifacts), root, BackupStore(root / ".test-backups")  # type: ignore[arg-type]
+            )
             changes = synchronizer.analyze(list(ArtifactKind))
 
             self.assertEqual(
@@ -120,7 +123,9 @@ class SynchronizerTests(unittest.TestCase):
             existing.parent.mkdir()
             existing.write_text("antigo", encoding="utf-8")
             synchronizer = Synchronizer(
-                FakeApi({ArtifactKind.JOB: [artifact]}), root  # type: ignore[arg-type]
+                FakeApi({ArtifactKind.JOB: [artifact]}),
+                root,
+                BackupStore(root / ".test-backups"),  # type: ignore[arg-type]
             )
             changes = synchronizer.analyze([ArtifactKind.JOB])
             self.assertEqual(ChangeKind.UPDATE, changes[0].status)

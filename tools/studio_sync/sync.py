@@ -8,6 +8,7 @@ from collections.abc import Callable, Iterable
 from pathlib import Path
 
 from .api import StudioApi, StudioApiError
+from .backup import BackupStore
 from .models import ArtifactKind, ChangeKind, RemoteArtifact, SyncChange
 
 
@@ -19,9 +20,11 @@ WINDOWS_RESERVED_NAMES = {
 
 
 class Synchronizer:
-    def __init__(self, api: StudioApi, root: Path) -> None:
+    def __init__(self, api: StudioApi, root: Path, backups: BackupStore | None = None) -> None:
         self.api = api
         self.root = root.expanduser().resolve()
+        self.backups = backups or BackupStore()
+        self.last_backup_id = ""
 
     def _target(self, artifact: RemoteArtifact) -> Path:
         title = artifact.title.strip()
@@ -169,25 +172,38 @@ class Synchronizer:
         return changes
 
     def apply(self, changes: Iterable[SyncChange]) -> int:
+        actionable = [
+            change for change in changes
+            if change.status in (ChangeKind.CREATE, ChangeKind.UPDATE)
+            and change.path is not None and change.artifact is not None
+        ]
+        if not actionable:
+            return 0
+        backup_id, manifest = self.backups.prepare(self.root, actionable)
         written = 0
-        for change in changes:
-            if change.status not in (ChangeKind.CREATE, ChangeKind.UPDATE):
-                continue
-            if change.path is None or change.artifact is None:
-                continue
-            change.path.parent.mkdir(parents=True, exist_ok=True)
-            descriptor, temporary_name = tempfile.mkstemp(
-                prefix=f".{change.path.name}.", suffix=".tmp", dir=change.path.parent
-            )
-            temporary = Path(temporary_name)
-            try:
-                with os.fdopen(descriptor, "w", encoding="utf-8", newline="") as stream:
-                    stream.write(change.artifact.source_code)
-                    stream.flush()
-                    os.fsync(stream.fileno())
-                os.replace(temporary, change.path)
-                written += 1
-            finally:
-                temporary.unlink(missing_ok=True)
+        try:
+            for change in actionable:
+                change.path.parent.mkdir(parents=True, exist_ok=True)
+                descriptor, temporary_name = tempfile.mkstemp(
+                    prefix=f".{change.path.name}.", suffix=".tmp", dir=change.path.parent
+                )
+                temporary = Path(temporary_name)
+                try:
+                    with os.fdopen(descriptor, "w", encoding="utf-8", newline="") as stream:
+                        stream.write(change.artifact.source_code)
+                        stream.flush()
+                        os.fsync(stream.fileno())
+                    os.replace(temporary, change.path)
+                    written += 1
+                finally:
+                    temporary.unlink(missing_ok=True)
+            self.backups.mark_applied(backup_id, manifest)
+        except Exception:
+            self.backups.abort(backup_id, manifest, self.root)
+            raise
+        self.last_backup_id = backup_id
         return written
+
+    def undo(self, backup_id: str) -> int:
+        return self.backups.undo(backup_id, self.root)
 
