@@ -65,18 +65,29 @@ Comment=Sincronize scripts e extensões do Studio Extensões
 Exec=/usr/bin/env python3 \"{RAIZ / 'iniciar.py'}\"
 Path={RAIZ}
 Terminal=false
-Icon=studio-sync
-Categories=Development;Utility;
+Icon={destino}
+Categories=Utility;
 StartupNotify=true
 """
     try:
+        alterado = False
         destino.parent.mkdir(parents=True, exist_ok=True)
         if not destino.exists() or destino.read_bytes() != ICONE.read_bytes():
             shutil.copy2(ICONE, destino)
+            alterado = True
         atalho.parent.mkdir(parents=True, exist_ok=True)
         if not atalho.exists() or atalho.read_text(encoding="utf-8") != conteudo_atalho:
             atalho.write_text(conteudo_atalho, encoding="utf-8")
             atalho.chmod(0o755)
+            alterado = True
+        if alterado:
+            atualizadores = (
+                ("gtk-update-icon-cache", "-f", "-t", str(home / ".local" / "share" / "icons" / "hicolor")),
+                ("update-desktop-database", str(atalho.parent)),
+            )
+            for comando in atualizadores:
+                if shutil.which(comando[0]):
+                    subprocess.run(comando, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except OSError:
         # A integração é visual e não deve impedir a abertura da aplicação.
         pass
