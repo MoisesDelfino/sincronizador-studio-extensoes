@@ -35,7 +35,7 @@ class Synchronizer:
         if not safe_title:
             raise ValueError(f"O título remoto {artifact.title!r} não pode ser usado como nome de arquivo.")
         directory = self.root / artifact.kind.directory if artifact.kind.directory else self.root
-        target = (directory / f"{safe_title}.groovy").resolve()
+        target = (directory / f"{safe_title}{artifact.kind.extension}").resolve()
         if self.root != target and self.root not in target.parents:
             raise ValueError(f"O título aponta para fora da pasta escolhida: {artifact.title!r}")
         return target
@@ -50,7 +50,7 @@ class Synchronizer:
 
         for directory, _subdirectories, files in os.walk(self.root, onerror=report_error):
             for filename in files:
-                if filename.casefold().endswith(".groovy"):
+                if filename.casefold().endswith((".groovy", ".jrxml")):
                     found[filename.casefold()].append(Path(directory) / filename)
         return dict(found), errors
 

@@ -18,7 +18,9 @@ from .cache import ArtifactCache
 AUTH_BASE = "https://plataforma-autorizacoes.betha.cloud/user-accounts/v0.1/api"
 EXTENSIONS_BASE = "https://plataforma-extensoes.betha.cloud/api"
 SCRIPTS_BASE = "https://plataforma-scripts.betha.cloud/scripts/v1/api"
+REPORTS_BASE = "https://plataforma-relatorios.betha.cloud/api"
 ORIGIN = "https://scripts.plataforma.betha.cloud"
+REPORTS_ORIGIN = "https://relatorios.plataforma.betha.cloud"
 
 
 class StudioApiError(RuntimeError):
@@ -199,6 +201,18 @@ class StudioApi:
             return response.json()
         except (ValueError, json.JSONDecodeError) as exc:
             raise StudioApiError(f"Resposta JSON inválida recebida de {url}") from exc
+
+    def _post(self, url: str, **kwargs: Any) -> requests.Response:
+        try:
+            response = self.session.post(url, timeout=self.timeout, **kwargs)
+            if response.status_code in (401, 403):
+                raise StudioApiError("Sessão expirada ou acesso não autorizado.")
+            response.raise_for_status()
+            return response
+        except StudioApiError:
+            raise
+        except requests.RequestException as exc:
+            raise StudioApiError(f"Falha ao consultar {url}: {exc}") from exc
 
     def current_user(self) -> dict[str, Any]:
         data = self._json(f"{AUTH_BASE}/users/@me")
@@ -471,7 +485,9 @@ class StudioApi:
 
     def _list_page(self, kind: ArtifactKind, offset: int, limit: int = 20) -> dict[str, Any]:
         filter_value = (
-            "tipo = 'SCRIPT' and propriedades in(new Propriedade"
+            "tipo = 'RELATORIO'"
+            if kind is ArtifactKind.REPORT
+            else "tipo = 'SCRIPT' and propriedades in(new Propriedade"
             f"('tipoScript', '{kind.value}'))"
         )
         data = self._json(
@@ -522,6 +538,25 @@ class StudioApi:
         if cached is not None:
             self.cache_hits += 1
             return cached
+        if kind is ArtifactKind.REPORT:
+            self.cache_misses += 1
+            response = self._post(
+                f"{REPORTS_BASE}/relatorios/{quote(script_id, safe='')}/download",
+                json=[],
+                headers={"Origin": REPORTS_ORIGIN, "Referer": f"{REPORTS_ORIGIN}/"},
+            )
+            try:
+                source_code = response.content.decode("utf-8-sig")
+            except UnicodeDecodeError as exc:
+                raise StudioApiError(f"O JRXML de '{title}' não está codificado em UTF-8.") from exc
+            if not source_code.lstrip().startswith("<?xml"):
+                raise StudioApiError(f"O download de '{title}' não contém um JRXML válido.")
+            artifact = RemoteArtifact(kind, str(title), script_id, revision_id, source_code)
+            try:
+                self.cache.put(context, artifact)
+            except OSError:
+                pass
+            return artifact
         # O detalhe é a fonte confiável da revisão atual.
         detail = self._json(f"{EXTENSIONS_BASE}/extensao/SCRIPT/{quote(script_id, safe='')}")
         if isinstance(detail, dict):

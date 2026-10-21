@@ -56,6 +56,11 @@ class SynchronizerTests(unittest.TestCase):
                         ArtifactKind.DYNAMIC_SOURCE, "Fonte", "5", "50", "fonte dinamica"
                     )
                 ],
+                ArtifactKind.REPORT: [
+                    RemoteArtifact(
+                        ArtifactKind.REPORT, "Ata", "6", "60", "<?xml version='1.0'?><jasperReport/>"
+                    )
+                ],
             }
             synchronizer = Synchronizer(
                 FakeApi(artifacts), root, BackupStore(root / ".test-backups")  # type: ignore[arg-type]
@@ -69,10 +74,11 @@ class SynchronizerTests(unittest.TestCase):
                     ChangeKind.CREATE,
                     ChangeKind.CREATE,
                     ChangeKind.CREATE,
+                    ChangeKind.CREATE,
                 ],
                 [change.status for change in changes],
             )
-            self.assertEqual(5, synchronizer.apply(changes))
+            self.assertEqual(6, synchronizer.apply(changes))
             self.assertEqual("novo", (root / "Existente.groovy").read_text(encoding="utf-8"))
             self.assertEqual("codigo", (root / "Novo.groovy").read_text(encoding="utf-8"))
             self.assertEqual(
@@ -87,6 +93,26 @@ class SynchronizerTests(unittest.TestCase):
                 "fonte dinamica",
                 (root / "FontesDinamicas" / "Fonte.groovy").read_text(encoding="utf-8"),
             )
+            self.assertEqual(
+                "<?xml version='1.0'?><jasperReport/>",
+                (root / "Relatorios" / "Ata.jrxml").read_text(encoding="utf-8"),
+            )
+
+    def test_compares_report_with_existing_jrxml(self) -> None:
+        artifact = RemoteArtifact(
+            ArtifactKind.REPORT, "Relatório", "7", "70", "<?xml version='1.0'?><jasperReport/>"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            reports = root / "Relatorios"
+            reports.mkdir()
+            local = reports / "Relatório.jrxml"
+            local.write_text(artifact.source_code, encoding="utf-8")
+            changes = Synchronizer(
+                FakeApi({ArtifactKind.REPORT: [artifact]}), root  # type: ignore[arg-type]
+            ).analyze([ArtifactKind.REPORT])
+        self.assertEqual(ChangeKind.UNCHANGED, changes[0].status)
+        self.assertEqual(local, changes[0].path)
 
     def test_sanitizes_path_separator_in_title(self) -> None:
         artifact = RemoteArtifact(ArtifactKind.JOB, "Abertura/Reabertura", "1", "2", "codigo")

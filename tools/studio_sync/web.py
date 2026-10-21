@@ -296,6 +296,8 @@ class Handler(BaseHTTPRequestHandler):
             kinds.append(ArtifactKind.CRITIQUE)
         if body.get("dynamicSource"):
             kinds.append(ArtifactKind.DYNAMIC_SOURCE)
+        if body.get("report"):
+            kinds.append(ArtifactKind.REPORT)
         if not kinds:
             raise ValueError("Selecione ao menos um tipo de artefato.")
         STATE.update("Selecionando a entidade...", True)

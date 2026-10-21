@@ -373,7 +373,8 @@ $('#analyze').onclick = () => action(async signal => {
       job: $('#job').checked,
       component: $('#component').checked,
       critique: $('#critique').checked,
-      dynamicSource: $('#dynamic-source').checked
+      dynamicSource: $('#dynamic-source').checked,
+      report: $('#report').checked
     })
   });
   await loadChanges(true);

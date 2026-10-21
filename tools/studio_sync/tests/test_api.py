@@ -11,9 +11,15 @@ from tools.studio_sync.models import AccessOption, ArtifactKind, SessionCredenti
 
 
 class FakeResponse:
-    def __init__(self, data: object, headers: dict[str, str] | None = None) -> None:
+    def __init__(
+        self,
+        data: object,
+        headers: dict[str, str] | None = None,
+        content: bytes | None = None,
+    ) -> None:
         self.data = data
         self.headers = headers or {}
+        self.content = content if content is not None else json.dumps(data).encode()
         self.status_code = 200
 
     def json(self) -> object:
@@ -33,6 +39,10 @@ class FakeSession:
         self.calls.append((url, kwargs))
         return self.responses.pop(0)
 
+    def post(self, url: str, **kwargs: object) -> FakeResponse:
+        self.calls.append((url, kwargs))
+        return self.responses.pop(0)
+
 
 class StudioApiTests(unittest.TestCase):
     def test_contract_fixture_fetches_every_supported_artifact_kind(self) -> None:
@@ -40,10 +50,12 @@ class StudioApiTests(unittest.TestCase):
         fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
         with tempfile.TemporaryDirectory() as directory:
             for kind in ArtifactKind:
-                session = FakeSession([
-                    FakeResponse(fixture["detail"]),
-                    FakeResponse(fixture["revision"]),
-                ])
+                responses = (
+                    [FakeResponse({}, content=b"<?xml version=\"1.0\"?><jasperReport/>")]
+                    if kind is ArtifactKind.REPORT
+                    else [FakeResponse(fixture["detail"]), FakeResponse(fixture["revision"])]
+                )
+                session = FakeSession(responses)
                 api = StudioApi(
                     SessionCredentials("token", "context"),
                     session=session,  # type: ignore[arg-type]
@@ -51,7 +63,27 @@ class StudioApiTests(unittest.TestCase):
                 )
                 artifact = api.fetch_artifact(kind, fixture["summary"])
                 self.assertEqual(kind, artifact.kind)
-                self.assertEqual("println 'contrato'", artifact.source_code)
+                expected = (
+                    '<?xml version="1.0"?><jasperReport/>'
+                    if kind is ArtifactKind.REPORT
+                    else "println 'contrato'"
+                )
+                self.assertEqual(expected, artifact.source_code)
+
+    def test_downloads_current_report_jrxml(self) -> None:
+        session = FakeSession([
+            FakeResponse({}, content=b'<?xml version="1.0" encoding="UTF-8"?><jasperReport/>')
+        ])
+        api = StudioApi(SessionCredentials("token", "context"), session=session)  # type: ignore[arg-type]
+        artifact = api.fetch_artifact(
+            ArtifactKind.REPORT,
+            {"titulo": "Relatório", "referencia": {"id": 1256657, "revisao": 77}},
+        )
+        self.assertEqual(ArtifactKind.REPORT, artifact.kind)
+        self.assertEqual("1256657", artifact.script_id)
+        self.assertIn("<jasperReport/>", artifact.source_code)
+        self.assertIn("/api/relatorios/1256657/download", session.calls[0][0])
+        self.assertEqual([], session.calls[0][1]["json"])
 
     def test_reuses_cached_artifact_revision_without_http_requests(self) -> None:
         summary = {
@@ -308,6 +340,7 @@ class StudioApiTests(unittest.TestCase):
                 "tipo = 'SCRIPT' and propriedades in(new Propriedade('tipoScript', 'COMPONENTE'))",
                 "tipo = 'SCRIPT' and propriedades in(new Propriedade('tipoScript', 'CRITICA'))",
                 "tipo = 'SCRIPT' and propriedades in(new Propriedade('tipoScript', 'FONTE_DINAMICA'))",
+                "tipo = 'RELATORIO'",
             ],
             filters,
         )
