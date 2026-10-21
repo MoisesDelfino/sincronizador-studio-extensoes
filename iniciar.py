@@ -23,6 +23,7 @@ LIBS = RAIZ / ".libs"
 def atualizar_repositorio(env: dict) -> bool:
     """Atualiza o clone atual sem criar merges nem sobrescrever trabalho local."""
     if not (RAIZ / ".git").exists() or not shutil.which("git"):
+        env["STUDIO_SYNC_VERSION_STATUS"] = "local"
         return False
     git_env = dict(env, GIT_TERMINAL_PROMPT="0")
     try:
@@ -36,13 +37,16 @@ def atualizar_repositorio(env: dict) -> bool:
             check=False,
         )
     except (OSError, subprocess.TimeoutExpired):
+        env["STUDIO_SYNC_VERSION_STATUS"] = "unavailable"
         print("Não foi possível verificar atualizações. Abrindo a versão local.")
         return False
     if resultado.returncode:
+        env["STUDIO_SYNC_VERSION_STATUS"] = "unavailable"
         detalhe = (resultado.stderr or resultado.stdout).strip().splitlines()
         mensagem = detalhe[-1] if detalhe else "falha não identificada"
         print(f"Atualização ignorada ({mensagem}). Abrindo a versão local.")
         return False
+    env["STUDIO_SYNC_VERSION_STATUS"] = "current"
     print("Studio Sync atualizado." if "Already up to date" not in resultado.stdout else "Studio Sync já está atualizado.")
     return True
 

@@ -1,70 +1,72 @@
-# Sincronizador do Studio Extensões
+# Studio Sync
 
-Aplicação local para comparar e sincronizar scripts, componentes, críticas, fontes dinâmicas e relatórios do Studio Extensões com uma pasta do computador. A interface abre no navegador e não exige terminal nem configuração técnica.
+Ferramenta local para comparar e sincronizar scripts, componentes, críticas, fontes dinâmicas e relatórios do Studio Extensões com uma pasta do computador.
 
-> **Antes de começar:** conecte o computador à rede corporativa ou à VPN da Betha. A autenticação e a consulta dos scripts dependem desse acesso.
+## Requisitos
 
-## Baixar e executar
+- acesso à rede corporativa ou à VPN da Betha;
+- internet na primeira execução;
+- Python 3.10 ou mais recente;
+- Git, para receber atualizações automáticas.
 
-1. Na [página do projeto](https://github.com/MoisesDelfino/sincronizador-studio-extensoes), clique em **Code → Download ZIP** e extraia em uma pasta de sua preferência. Se preferir, clone o repositório com `git clone`.
-2. Dê duplo clique no arquivo do seu sistema:
+No Windows, o inicializador tenta instalar o Python pelo `winget` quando necessário.
+
+## Instalação
+
+Clone o [repositório do Studio Sync](https://github.com/MoisesDelfino/sincronizador-studio-extensoes) para que a ferramenta possa se atualizar automaticamente ao abrir.
+
+Também é possível usar **Code → Download ZIP**, mas essa opção não recebe atualizações automáticas. Quando houver uma nova versão, será necessário baixar e extrair o ZIP novamente.
+
+## Como abrir
 
 | Sistema | Arquivo |
 | --- | --- |
 | Windows | `Abrir Studio Sync.bat` |
 | macOS | `Abrir Studio Sync.command` |
-| Linux | `Abrir Studio Sync.desktop` (ou `Abrir Studio Sync.sh`) |
+| Linux | `Abrir Studio Sync.desktop` |
 
-Na primeira execução o aplicativo prepara o ambiente sozinho (ambiente Python e navegador do login), o que exige internet e leva alguns minutos. Nas próximas, abre em segundos.
+Na primeira abertura, aguarde a preparação automática do ambiente e do navegador usado na autenticação.
 
-**Requisito:** Python 3.10 ou mais recente. No Windows, se não houver Python, o lançador o instala pelo winget.
+- **macOS:** na primeira vez, clique com o botão direito no arquivo `.command` e selecione **Abrir**.
+- **Linux:** se necessário, habilite **Permitir executar como programa** nas propriedades do arquivo `.desktop`.
 
-- **macOS:** na primeira vez, clique com o botão direito no `.command` → **Abrir**. Se necessário, rode `chmod +x "Abrir Studio Sync.command"`.
-- **Linux:** se o sistema não permitir, marque **Permitir executar como programa** nas propriedades do arquivo `.desktop`.
+O Studio Sync funciona somente enquanto estiver aberto.
 
-O Studio Sync funciona somente enquanto está aberto.
-
-Ao abrir, o inicializador executa `git pull --ff-only` no próprio clone para buscar atualizações com segurança. Se não houver internet, Git ou uma atualização direta possível, ele preserva os arquivos existentes e abre a versão local normalmente.
-
-## Acesso a entidades e sistemas
-
-A ferramenta lista apenas as **entidades e sistemas aos quais o seu usuário tem acesso**. Se uma entidade ou sistema de que você precisa não aparecer, solicite a liberação pelo **Betha Admin**. Depois de concedido o acesso, use **Trocar conta** ou entre novamente para atualizar a lista.
-
-## Primeiro uso
+## Como usar
 
 1. Conecte-se à rede Betha ou à VPN.
-2. Abra o Studio Sync pelo arquivo `Abrir Studio Sync`.
-3. Clique em **Entrar no Studio Extensões** e conclua o login e o MFA na página oficial da Betha.
-4. Confira a entidade (somente as que você tem acesso são listadas), escolha o sistema e selecione a pasta do repositório local.
-5. Clique em **Analisar diferenças**. Apenas a página exibida terá o conteúdo carregado.
-6. Pesquise ou filtre os scripts, selecione os desejados e clique em **Sincronizar selecionados**.
+2. Abra o Studio Sync pelo arquivo correspondente ao seu sistema.
+3. Entre no Studio Extensões e conclua o MFA.
+4. Selecione a entidade e o sistema.
+5. Escolha a pasta local e os tipos de artefato.
+6. Analise as diferenças.
+7. Selecione os arquivos desejados e confirme a sincronização.
 
-Arquivos novos são organizados por tipo: scripts na pasta escolhida, componentes em `Componentes`, críticas em `Criticas`, fontes dinâmicas em `FontesDinamicas` e relatórios JRXML em `Relatorios`. Se um arquivo com o mesmo nome e extensão já existir em outra subpasta, ele é atualizado no local existente.
+A análise é apenas uma prévia. Nenhum arquivo é alterado antes da confirmação.
 
-A análise apenas apresenta uma prévia. Nenhum arquivo é alterado antes da confirmação em **Sincronizar agora**.
+Depois de sincronizar, é possível voltar e selecionar outra entidade, sistema ou pasta.
 
-## Segurança e restauração
+## Organização dos arquivos
 
-Antes de cada sincronização, o Studio Sync guarda uma cópia dos arquivos que serão alterados. Use **Desfazer última sincronização** para restaurar arquivos atualizados e remover os que foram criados naquela operação.
+| Tipo | Pasta de destino |
+| --- | --- |
+| Scripts | Pasta selecionada |
+| Componentes | `Componentes` |
+| Críticas | `Criticas` |
+| Fontes dinâmicas | `FontesDinamicas` |
+| Relatórios JRXML | `Relatorios` |
 
-O aplicativo não desfaz a operação se detectar que algum dos arquivos foi editado posteriormente. Essa proteção evita substituir trabalho novo por uma cópia antiga. Os snapshots ficam na pasta de dados local do Studio Sync, fora do repositório selecionado.
+Se o arquivo já existir em uma subpasta, ele será atualizado no local existente. Arquivos locais que não existem no Studio não são removidos.
 
-## Privacidade e funcionamento
+## Desfazer uma sincronização
 
-- usuário, senha e código MFA são informados somente na página oficial da Betha;
-- a aplicação preserva uma sessão privada do navegador para evitar logins repetidos enquanto ela for válida;
-- use **Trocar conta** para apagar a sessão local;
-- conteúdos já consultados ficam em cache por revisão, acelerando as próximas análises;
-- arquivos locais que não existem no Studio não são removidos;
-- conflitos são apresentados com a causa e não impedem a sincronização dos demais arquivos.
+Use **Desfazer última sincronização** para restaurar os arquivos atualizados e remover os arquivos criados pela última operação.
 
-Consulte a [documentação detalhada](tools/studio_sync/README.md) para conhecer todas as regras de comparação e sincronização.
+Por segurança, a restauração é bloqueada quando algum desses arquivos foi editado depois da sincronização.
 
-<details>
-<summary><strong>Informações para desenvolvimento</strong></summary>
+## Problemas comuns
 
-Execução pelo código-fonte (Python 3.10+): `python3 iniciar.py`. Validação completa: `python3 validar.py`.
-
-Consulte [CONTRIBUTING.md](CONTRIBUTING.md) para o fluxo de branches, Pull Request, smoke test, publicação e rollback.
-
-</details>
+- **Entidade ou sistema não aparece:** solicite o acesso pelo Betha Admin e entre novamente na ferramenta.
+- **Falha ao autenticar ou consultar:** confira a conexão com a rede corporativa ou VPN.
+- **Verificação de versão indisponível:** a ferramenta abrirá a versão local; confira a internet, o Git e se o repositório possui alterações locais.
+- **Primeira abertura não conclui:** confirme que o Python 3.10+ está instalado e tente novamente com acesso à internet.

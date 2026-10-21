@@ -15,6 +15,7 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn('src="studio-sync.png"', html)
         self.assertIn('rel="icon"', html)
         self.assertIn('class="type-column"', html)
+        self.assertIn('id="version-status"', html)
         self.assertEqual(html.count('data-step="'), 4)
         self.assertIn('data-panel="1"', html)
         self.assertIn('data-panel="4"', html)
@@ -24,6 +25,8 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn("function goToStep(step)", javascript)
         self.assertIn("invalidateAnalysis", javascript)
         self.assertIn("kind === 'JOB' ? 'SCRIPT'", javascript)
+        self.assertIn("Versão atual", javascript)
+        self.assertEqual("local", state["versionStatus"])
         self.assertFalse(state["authenticated"])
         self.assertFalse(state["canUndo"])
 

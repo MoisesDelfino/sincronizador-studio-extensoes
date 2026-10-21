@@ -24,6 +24,21 @@ const stepDescriptions = {
   4: 'Revise as diferenças e sincronize os itens selecionados.'
 };
 
+const versionLabels = {
+  current: ['Versão atual', 'A ferramenta está na versão mais recente disponível no GitHub.'],
+  unavailable: ['Verificação indisponível', 'Não foi possível confirmar a versão no GitHub. A versão local foi iniciada.'],
+  local: ['Versão local', 'A ferramenta não foi iniciada a partir de um clone Git verificável.']
+};
+
+function updateVersionStatus(status) {
+  const element = $('#version-status');
+  const normalized = Object.hasOwn(versionLabels, status) ? status : 'unavailable';
+  const [label, description] = versionLabels[normalized];
+  element.className = `version-tag ${normalized}`;
+  element.textContent = label;
+  element.title = description;
+}
+
 function contextSelected() {
   return authenticated && Boolean($('#entity').value) && Boolean($('#access').value) && !$('#access').disabled;
 }
@@ -294,6 +309,7 @@ async function refresh() {
   busy = state.busy;
   authenticated = state.authenticated;
   $('#status').textContent = state.status;
+  updateVersionStatus(state.versionStatus);
   $('#account').textContent = state.authenticated ? state.user : 'Nenhuma sessão conectada';
   $('#login').textContent = state.authenticated ? 'Trocar conta ↗' : 'Entrar no Studio Extensões ↗';
   $('#create').textContent = state.counts.CRIAR;

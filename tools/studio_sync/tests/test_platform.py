@@ -64,8 +64,10 @@ class RepositoryUpdateTests(unittest.TestCase):
     @patch.object(iniciar.subprocess, "run")
     def test_updates_with_fast_forward_only_before_starting(self, run: Mock, _which: Mock) -> None:
         run.return_value = Mock(returncode=0, stdout="Already up to date.\n", stderr="")
+        env = {"EXISTING": "value"}
         with patch.object(iniciar, "RAIZ", Path(".")):
-            self.assertTrue(iniciar.atualizar_repositorio({"EXISTING": "value"}))
+            self.assertTrue(iniciar.atualizar_repositorio(env))
+        self.assertEqual("current", env["STUDIO_SYNC_VERSION_STATUS"])
         self.assertEqual(["git", "pull", "--ff-only"], run.call_args.args[0])
         self.assertEqual("0", run.call_args.kwargs["env"]["GIT_TERMINAL_PROMPT"])
         self.assertEqual(30, run.call_args.kwargs["timeout"])
@@ -74,8 +76,10 @@ class RepositoryUpdateTests(unittest.TestCase):
     @patch.object(iniciar.subprocess, "run")
     def test_failed_update_does_not_block_local_start(self, run: Mock, _which: Mock) -> None:
         run.return_value = Mock(returncode=1, stdout="", stderr="local changes")
+        env = {}
         with patch.object(iniciar, "RAIZ", Path(".")):
-            self.assertFalse(iniciar.atualizar_repositorio({}))
+            self.assertFalse(iniciar.atualizar_repositorio(env))
+        self.assertEqual("unavailable", env["STUDIO_SYNC_VERSION_STATUS"])
 
 if __name__ == "__main__":
     unittest.main()
