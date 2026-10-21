@@ -8,16 +8,20 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: validate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   tests:
+    # Runner padrão gratuito para este repositório público. Não trocar por larger runner.
     runs-on: ubuntu-22.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: pip
-          cache-dependency-path: tools/studio_sync/requirements.txt
       - uses: actions/setup-node@v4
         with:
           node-version: "22"

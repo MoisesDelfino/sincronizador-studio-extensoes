@@ -30,3 +30,10 @@ Não faça push direto na `main`. Quando o GitHub Actions estiver disponível, c
 - não trate um commit sem tag como versão estável para usuários finais.
 
 Enquanto o GitHub Actions estiver bloqueado, rode `python3 validar.py` localmente e publique somente depois do smoke test manual.
+
+## Política de custo zero
+
+- use somente runners padrão em repositório público, atualmente gratuitos no GitHub Actions;
+- nunca use larger runners, serviços pagos, cache com cobrança, armazenamento adicional ou marketplace pago;
+- jobs devem ter tempo limite e cancelamento de execuções antigas;
+- se uma validação deixar de ser gratuita, desative-a e use `python3 validar.py` localmente antes de gerar qualquer custo.
