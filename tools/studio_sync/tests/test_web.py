@@ -16,6 +16,7 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn('id="confirm-eyebrow"', html)
         self.assertIn('src="studio-sync.png"', html)
         self.assertIn('rel="icon"', html)
+        self.assertIn("<title>Studio Sync</title>", html)
         self.assertIn('class="type-column"', html)
         self.assertIn('id="version-status"', html)
         self.assertIn('id="close">Sair</button>', html)
