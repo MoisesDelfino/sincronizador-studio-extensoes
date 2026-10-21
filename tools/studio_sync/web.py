@@ -199,6 +199,7 @@ class Handler(BaseHTTPRequestHandler):
         credentials = authenticate_interactively(
             status=lambda value: STATE.update(value, True),
             reset_session=bool(body.get("resetSession")),
+            cancelled=STATE.cancelled,
         )
         STATE.ensure_not_cancelled()
         api = StudioApi(credentials)

@@ -2,10 +2,14 @@ from __future__ import annotations
 
 import unittest
 
-from tools.studio_sync.auth import selected_context_from_url
+from tools.studio_sync.auth import AuthenticationError, authenticate_interactively, selected_context_from_url
 
 
 class AuthenticationTests(unittest.TestCase):
+    def test_authentication_honors_a_preexisting_cancellation(self) -> None:
+        with self.assertRaisesRegex(AuthenticationError, "cancelada"):
+            authenticate_interactively(cancelled=lambda: True)
+
     def test_extracts_selected_entity_from_studio_route(self) -> None:
         database, entity = selected_context_from_url(
             "https://scripts.plataforma.betha.cloud/"
