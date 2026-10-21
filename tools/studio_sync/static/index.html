@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#11131c">
   <title>Studio Sync</title>
+  <script>
+    (() => {
+      const saved = localStorage.getItem('studio-sync-theme');
+      document.documentElement.dataset.theme = saved || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    })();
+  </script>
   <link rel="icon" type="image/png" href="studio-sync.png">
   <link rel="stylesheet" href="/styles.css">
 </head>
@@ -12,7 +18,7 @@
   <header>
     <div class="header-inner">
       <div class="brand"><img class="mark" src="studio-sync.png" alt=""><div><strong>Studio Extensões</strong><small>Sincronizador local</small></div></div>
-      <div class="header-actions"><span class="version-tag checking" id="version-status" role="status">Verificando versão...</span><button class="quiet" id="close">Sair</button></div>
+      <div class="header-actions"><button class="theme-toggle" id="theme-toggle" type="button" aria-label="Ativar modo claro" aria-pressed="false" title="Ativar modo claro"><span aria-hidden="true">☀</span></button><span class="version-tag checking" id="version-status" role="status">Verificando versão...</span><button class="quiet" id="close">Sair</button></div>
     </div>
   </header>
 
