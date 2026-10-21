@@ -5,59 +5,52 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#11131c">
   <title>Studio Extensões | Sincronizador</title>
+  <link rel="icon" type="image/png" href="studio-sync.png">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <header>
     <div class="header-inner">
-      <div class="brand"><span class="mark">B</span><div><strong>Studio Extensões</strong><small>Sincronizador local</small></div></div>
+      <div class="brand"><img class="mark" src="studio-sync.png" alt=""><div><strong>Studio Extensões</strong><small>Sincronizador local</small></div></div>
       <button class="quiet" id="close">Encerrar</button>
     </div>
   </header>
 
   <main>
     <section class="page-heading">
-      <div><span class="eyebrow">SINCRONIZAÇÃO</span><h1>Artefatos do Studio</h1><p>Compare scripts, componentes, críticas, fontes dinâmicas e relatórios com seu repositório local.</p></div>
+      <div><span class="eyebrow">SINCRONIZAÇÃO</span><h1>Artefatos do Studio</h1><p id="step-description">Entre com sua conta Betha para iniciar.</p></div>
       <div class="status"><span class="status-dot"></span><div><small>Status</small><strong id="status">Carregando...</strong></div></div>
     </section>
 
-    <aside class="network-notice" role="note" aria-label="Requisito de conexão">
-      <span class="network-notice-icon" aria-hidden="true">⌁</span>
-      <div><strong>Conexão com a rede Betha necessária</strong><span>Antes de autenticar ou sincronizar, conecte-se à rede corporativa ou à VPN da Betha.</span></div>
-    </aside>
+    <nav class="wizard-steps" aria-label="Etapas da sincronização">
+      <button class="wizard-step active" data-step="1"><span>1</span><div><strong>Autenticação</strong><small>Conta Betha</small></div></button>
+      <button class="wizard-step" data-step="2" disabled><span>2</span><div><strong>Origem</strong><small>Entidade e sistema</small></div></button>
+      <button class="wizard-step" data-step="3" disabled><span>3</span><div><strong>Destino</strong><small>Pasta local</small></div></button>
+      <button class="wizard-step" data-step="4" disabled><span>4</span><div><strong>Sincronização</strong><small>Revisar e aplicar</small></div></button>
+    </nav>
 
-    <section class="next-step" id="next-step">
-      <span class="next-step-number" id="next-step-number">1</span>
-      <div><small>PRÓXIMO PASSO</small><strong id="next-step-text">Entre com sua conta Betha para começar.</strong></div>
+    <section class="wizard-panel auth-panel" data-panel="1">
+      <div class="wizard-card-copy"><span class="eyebrow">ETAPA 1 DE 4</span><h2>Conecte sua conta Betha</h2><p>A autenticação abre a página oficial do Studio Extensões. Conclua também o MFA quando solicitado.</p></div>
+      <aside class="network-notice" role="note" aria-label="Requisito de conexão">
+        <span class="network-notice-icon" aria-hidden="true">⌁</span>
+        <div><strong>Conexão com a rede Betha necessária</strong><span>Conecte-se à rede corporativa ou à VPN antes de continuar.</span></div>
+      </aside>
+      <div class="account-summary"><div><small>CONTA ATUAL</small><strong id="account">Nenhuma sessão conectada</strong></div><button class="button primary" id="login">Entrar no Studio Extensões <span>↗</span></button></div>
     </section>
 
-    <section class="setup">
-      <div class="section-title"><span>Configuração</span><small>Defina a origem e o destino da sincronização</small></div>
-
-      <div class="setup-grid">
-        <div class="field account-field">
-          <label>Conta Betha</label>
-          <div class="account" id="account">Nenhuma sessão conectada</div>
-          <button class="button secondary" id="login">Entrar no Studio Extensões <span>↗</span></button>
-        </div>
-
-        <div class="field">
-          <label for="entity">Entidade</label>
-          <select id="entity" disabled><option>Autentique-se primeiro</option></select>
-        </div>
-
-        <div class="field">
-          <label for="access">Sistema</label>
-          <select id="access" disabled><option>Selecione uma entidade</option></select>
-        </div>
-
-        <div class="field destination-field">
-          <label for="folder">Repositório local</label>
-          <div class="folder"><input id="folder" placeholder="Nenhuma pasta selecionada" readonly><button id="choose">Escolher</button></div>
-        </div>
+    <section class="wizard-panel" data-panel="2" hidden>
+      <div class="wizard-card-copy"><span class="eyebrow">ETAPA 2 DE 4</span><h2>Selecione a origem</h2><p>Escolha a entidade e o sistema do Studio Extensões que deseja comparar.</p></div>
+      <div class="context-grid">
+        <div class="field"><label for="entity">Entidade</label><select id="entity" disabled><option>Autentique-se primeiro</option></select></div>
+        <div class="field"><label for="access">Sistema</label><select id="access" disabled><option>Selecione uma entidade</option></select></div>
       </div>
+      <div class="wizard-actions"><button class="button secondary wizard-back" data-target="1">← Voltar</button><button class="button primary" id="context-next" disabled>Continuar <span>→</span></button></div>
+    </section>
 
-      <div class="setup-footer">
+    <section class="wizard-panel" data-panel="3" hidden>
+      <div class="wizard-card-copy"><span class="eyebrow">ETAPA 3 DE 4</span><h2>Escolha o destino local</h2><p>Selecione a pasta e quais tipos de artefato serão analisados.</p></div>
+      <div class="field destination-field"><label for="folder">Repositório local</label><div class="folder"><input id="folder" placeholder="Nenhuma pasta selecionada" readonly><button id="choose">Escolher pasta</button></div></div>
+      <div class="artifact-options"><small>ARTEFATOS</small>
         <div class="toggles">
           <label><input id="job" type="checkbox" checked> Scripts</label>
           <label><input id="component" type="checkbox" checked> Componentes</label>
@@ -65,14 +58,14 @@
           <label><input id="dynamic-source" type="checkbox" checked> Fontes dinâmicas</label>
           <label><input id="report" type="checkbox" checked> Relatórios</label>
         </div>
-        <button class="button primary" id="analyze">Analisar diferenças <span>→</span></button>
       </div>
+      <div class="wizard-actions"><button class="button secondary wizard-back" data-target="2">← Voltar</button><button class="button primary" id="analyze">Analisar diferenças <span>→</span></button></div>
     </section>
 
-    <section class="results">
+    <section class="wizard-panel results" data-panel="4" hidden>
       <div class="results-head">
-        <div><span class="eyebrow">PRÉVIA</span><h2>Alterações encontradas</h2></div>
-        <button class="button secondary" id="undo" disabled>Desfazer última sincronização</button>
+        <div><span class="eyebrow">ETAPA 4 DE 4</span><h2>Alterações encontradas</h2><p>Revise os itens antes de sincronizar.</p></div>
+        <div class="results-actions"><button class="button secondary wizard-back" data-target="3">← Trocar pasta</button><button class="button secondary" id="change-context">Trocar entidade/sistema</button><button class="button secondary" id="undo" disabled>Desfazer última sincronização</button></div>
       </div>
 
       <div class="metrics">
