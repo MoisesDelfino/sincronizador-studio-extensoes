@@ -13,6 +13,62 @@ let pageSize = 20;
 let toastTimer;
 let actionController;
 let folderController;
+let currentStep = 1;
+let analysisReady = false;
+
+const stepDescriptions = {
+  1: 'Entre com sua conta Betha para iniciar.',
+  2: 'Selecione a entidade e o sistema de origem.',
+  3: 'Escolha a pasta local e os tipos de artefato.',
+  4: 'Revise as diferenças e sincronize os itens selecionados.'
+};
+
+function contextSelected() {
+  return authenticated && Boolean($('#entity').value) && Boolean($('#access').value) && !$('#access').disabled;
+}
+
+function availableStep() {
+  if (!authenticated) return 1;
+  if (analysisReady) return 4;
+  if (contextSelected()) return 3;
+  return 2;
+}
+
+function updateWizard() {
+  const maximum = availableStep();
+  if (currentStep > maximum) currentStep = maximum;
+  document.querySelectorAll('[data-panel]').forEach(panel => {
+    panel.hidden = Number(panel.dataset.panel) !== currentStep;
+  });
+  document.querySelectorAll('.wizard-step').forEach(step => {
+    const number = Number(step.dataset.step);
+    step.disabled = busy || number > maximum;
+    step.classList.toggle('active', number === currentStep);
+    step.classList.toggle('complete', number < currentStep || number < maximum);
+    step.setAttribute('aria-current', number === currentStep ? 'step' : 'false');
+  });
+  $('#step-description').textContent = stepDescriptions[currentStep];
+  $('#context-next').disabled = busy || !contextSelected();
+  updateAnalyzeAvailability();
+}
+
+function goToStep(step) {
+  if (step > availableStep()) return;
+  currentStep = step;
+  updateWizard();
+  document.querySelector(`[data-panel="${step}"]`)?.querySelector('select, input, button:not(:disabled)')?.focus();
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function invalidateAnalysis() {
+  if (!analysisReady && !changes.length) return;
+  analysisReady = false;
+  changes = [];
+  selectedChanges.clear();
+  currentPage = 1;
+  renderChanges();
+  updateWizard();
+}
 
 function toast(message) {
   const element = $('#toast');
@@ -139,19 +195,7 @@ function showLoading(visible, message = 'Aguarde um momento...') {
 }
 
 function updateGuidance() {
-  let step = '1';
-  let message = 'Entre com sua conta Betha para começar.';
-  if (authenticated && !$('#folder').value.trim()) {
-    step = '2'; message = 'Escolha a pasta que será usada como repositório local.';
-  } else if (authenticated && !changes.length) {
-    step = '3'; message = 'Analise as diferenças entre o Studio e o repositório selecionado.';
-  } else if (changes.length && !selectedChanges.size) {
-    step = '4'; message = 'Pesquise e selecione os scripts que deseja sincronizar.';
-  } else if (selectedChanges.size) {
-    step = '5'; message = `Revise e sincronize os ${selectedChanges.size} script(s) selecionado(s).`;
-  }
-  $('#next-step-number').textContent = step;
-  $('#next-step-text').textContent = message;
+  updateWizard();
 }
 
 function updateSelection() {
@@ -172,7 +216,7 @@ function updateSelection() {
 }
 
 function updateAnalyzeAvailability() {
-  $('#analyze').disabled = busy || !$('#folder').value.trim();
+  $('#analyze').disabled = busy || !contextSelected() || !$('#folder').value.trim();
 }
 
 function renderChanges() {
@@ -259,7 +303,7 @@ async function refresh() {
   $('#undo').disabled = busy || !state.canUndo;
   showLoading(busy, state.status);
   renderChanges();
-  updateAnalyzeAvailability();
+  updateWizard();
 }
 
 async function waitUntilIdle() {
@@ -295,9 +339,14 @@ $('#loading-cancel').onclick = async () => {
   catch (_) { toast('A aplicação foi atualizada. Feche-a e abra novamente para habilitar o cancelamento.'); }
 };
 
-$('#login').onclick = () => action(signal => request('/api/authenticate', {
-  method: 'POST', signal, body: JSON.stringify({resetSession: authenticated})
-}));
+$('#login').onclick = () => action(async signal => {
+  await request('/api/authenticate', {
+    method: 'POST', signal, body: JSON.stringify({resetSession: authenticated})
+  });
+  authenticated = true;
+  analysisReady = false;
+  currentStep = 2;
+});
 
 async function browseFolder(path = '') {
   folderController?.abort();
@@ -331,12 +380,30 @@ $('#folder-up').onclick = () => folderParent && browseFolder(folderParent);
 $('#folder-go').onclick = () => browseFolder($('#folder-current').value);
 $('#folder-current').onkeydown = event => { if (event.key === 'Enter') browseFolder(event.currentTarget.value); };
 $('#folder-select').onclick = () => {
+  const changed = $('#folder').value !== $('#folder-current').value;
   $('#folder').value = $('#folder-current').value;
   $('#folder-modal').hidden = true;
   document.body.classList.remove('modal-open');
-  updateAnalyzeAvailability();
-  updateGuidance();
+  if (changed) invalidateAnalysis();
+  updateWizard();
 };
+
+document.querySelectorAll('.wizard-step').forEach(step => {
+  step.onclick = () => goToStep(Number(step.dataset.step));
+});
+document.querySelectorAll('.wizard-back').forEach(button => {
+  button.onclick = () => goToStep(Number(button.dataset.target));
+});
+$('#context-next').onclick = () => goToStep(3);
+$('#change-context').onclick = () => goToStep(2);
+$('#entity').addEventListener('change', () => {
+  invalidateAnalysis();
+  updateWizard();
+});
+$('#access').addEventListener('change', () => {
+  invalidateAnalysis();
+  updateWizard();
+});
 
 let searchTimer;
 $('#script-search').oninput = () => {
@@ -404,6 +471,9 @@ $('#analyze').onclick = () => action(async signal => {
     method: 'POST', signal, body: JSON.stringify({changes: firstPage.map(change => change.index)})
   });
   await loadChanges(false, false);
+  analysisReady = true;
+  currentStep = 4;
+  updateWizard();
 });
 
 $('#sync').onclick = async () => {
