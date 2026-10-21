@@ -11,6 +11,8 @@ let selectedChanges = new Set();
 let currentPage = 1;
 let pageSize = 20;
 let toastTimer;
+let actionController;
+let folderController;
 
 function toast(message) {
   const element = $('#toast');
@@ -116,6 +118,7 @@ function currentPageChanges() {
 function showLoading(visible, message = 'Aguarde um momento...') {
   $('#loading').hidden = !visible;
   $('#loading-message').textContent = message;
+  $('#loading-cancel').disabled = !visible || !actionController;
 }
 
 function updateGuidance() {
@@ -206,9 +209,9 @@ async function loadChanges(clearSelection = false, resetPage = true) {
 async function loadRows(rows) {
   const missing = rows.filter(change => !change.loaded).map(change => change.index);
   if (!missing.length) return;
-  await action(async () => {
+  await action(async signal => {
     await request('/api/page', {
-      method: 'POST', body: JSON.stringify({changes: missing})
+      method: 'POST', signal, body: JSON.stringify({changes: missing})
     });
     await loadChanges(false, false);
   });
@@ -238,23 +241,49 @@ async function refresh() {
   updateAnalyzeAvailability();
 }
 
-async function action(callback) {
-  busy = true;
-  document.querySelectorAll('button').forEach(button => button.disabled = true);
-  showLoading(true, 'Preparando a operação...');
-  try { await callback(); } catch (error) { toast(error.message); }
-  finally { busy = false; showLoading(false); await refresh(); }
+async function waitUntilIdle() {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const state = await request('/api/state');
+    if (!state.busy) return;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
 }
 
-$('#login').onclick = () => action(() => request('/api/authenticate', {
-  method: 'POST', body: JSON.stringify({resetSession: authenticated})
+async function action(callback) {
+  busy = true;
+  actionController = new AbortController();
+  document.querySelectorAll('button').forEach(button => button.disabled = true);
+  showLoading(true, 'Preparando a operação...');
+  try { await callback(actionController.signal); }
+  catch (error) { if (error.name !== 'AbortError') toast(error.message); }
+  finally {
+    if (actionController.signal.aborted) await waitUntilIdle();
+    actionController = undefined;
+    busy = false;
+    showLoading(false);
+    await refresh();
+  }
+}
+
+$('#loading-cancel').onclick = async () => {
+  if (!actionController) return;
+  actionController.abort();
+  $('#loading-cancel').disabled = true;
+  $('#loading-message').textContent = 'Cancelando operação...';
+  try { await request('/api/cancel', {method: 'POST'}); } catch (_) {}
+};
+
+$('#login').onclick = () => action(signal => request('/api/authenticate', {
+  method: 'POST', signal, body: JSON.stringify({resetSession: authenticated})
 }));
 
 async function browseFolder(path = '') {
+  folderController?.abort();
+  folderController = new AbortController();
   const message = $('#folder-message');
   message.textContent = 'Carregando...';
   try {
-    const data = await request('/api/folders', {method: 'POST', body: JSON.stringify({path})});
+    const data = await request('/api/folders', {method: 'POST', signal: folderController.signal, body: JSON.stringify({path})});
     folderParent = data.parent;
     $('#folder-current').value = data.path;
     $('#folder-up').disabled = !data.parent;
@@ -263,7 +292,7 @@ async function browseFolder(path = '') {
       : '<p>Esta pasta não contém subpastas.</p>';
     $('#folder-list').querySelectorAll('button').forEach(button => button.onclick = () => browseFolder(button.dataset.path));
     message.textContent = `${data.directories.length} pasta(s)`;
-  } catch (error) { message.textContent = error.message; }
+  } catch (error) { if (error.name !== 'AbortError') message.textContent = error.message; }
 }
 
 $('#choose').onclick = () => {
@@ -271,7 +300,11 @@ $('#choose').onclick = () => {
   document.body.classList.add('modal-open');
   browseFolder($('#folder').value);
 };
-$('#folder-cancel').onclick = () => { $('#folder-modal').hidden = true; document.body.classList.remove('modal-open'); };
+$('#folder-cancel').onclick = () => {
+  folderController?.abort();
+  $('#folder-modal').hidden = true;
+  document.body.classList.remove('modal-open');
+};
 $('#folder-up').onclick = () => folderParent && browseFolder(folderParent);
 $('#folder-go').onclick = () => browseFolder($('#folder-current').value);
 $('#folder-current').onkeydown = event => { if (event.key === 'Enter') browseFolder(event.currentTarget.value); };
@@ -329,9 +362,10 @@ $('#last-page').onclick = async () => {
   if (currentPage < pageCount) { currentPage = pageCount; await loadCurrentPage(); }
 };
 
-$('#analyze').onclick = () => action(async () => {
+$('#analyze').onclick = () => action(async signal => {
   await request('/api/analyze', {
     method: 'POST',
+    signal,
     body: JSON.stringify({
       access: +$('#access').value,
       folder: $('#folder').value,
@@ -344,7 +378,7 @@ $('#analyze').onclick = () => action(async () => {
   await loadChanges(true);
   const firstPage = currentPageSourceChanges();
   await request('/api/page', {
-    method: 'POST', body: JSON.stringify({changes: firstPage.map(change => change.index)})
+    method: 'POST', signal, body: JSON.stringify({changes: firstPage.map(change => change.index)})
   });
   await loadChanges(false, false);
 });
@@ -352,9 +386,9 @@ $('#analyze').onclick = () => action(async () => {
 $('#sync').onclick = async () => {
   if (!selectedChanges.size) return toast('Selecione ao menos um script.');
   if (!await confirmSynchronization(selectedChanges.size)) return;
-  await action(async () => {
+  await action(async signal => {
     const data = await request('/api/apply', {
-      method: 'POST', body: JSON.stringify({changes: [...selectedChanges]})
+      method: 'POST', signal, body: JSON.stringify({changes: [...selectedChanges]})
     });
     synchronizationToast(data);
     selectedChanges.clear();
@@ -364,8 +398,8 @@ $('#sync').onclick = async () => {
 
 $('#undo').onclick = async () => {
   if (!window.confirm('Desfazer a última sincronização e restaurar os arquivos anteriores?')) return;
-  await action(async () => {
-    const data = await request('/api/undo', {method: 'POST'});
+  await action(async signal => {
+    const data = await request('/api/undo', {method: 'POST', signal});
     toast(`Última sincronização desfeita: ${data.restored} arquivo(s) restaurado(s).`);
     selectedChanges.clear();
     await loadChanges(true);

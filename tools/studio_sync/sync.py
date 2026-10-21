@@ -88,6 +88,7 @@ class Synchronizer:
         summaries: Iterable[tuple[ArtifactKind, dict]],
         duplicate_names: set[str] | None = None,
         progress: Callable[[str], None] | None = None,
+        cancelled: Callable[[], bool] | None = None,
     ) -> list[SyncChange]:
         """Baixa e compara somente os resumos solicitados, preservando sua ordem."""
         report = progress or (lambda _message: None)
@@ -95,6 +96,8 @@ class Synchronizer:
         artifacts: list[RemoteArtifact | None] = []
         fetch_errors: list[str] = []
         for index, (kind, summary) in enumerate(requested, 1):
+            if cancelled and cancelled():
+                raise RuntimeError("Operação cancelada pelo usuário.")
             title = str(summary.get("titulo") or summary.get("title") or summary.get("nome") or "desconhecido")
             report(f"Carregando {kind.value} {index}/{len(requested)}: {title}")
             try:
@@ -171,7 +174,11 @@ class Synchronizer:
             changes.append(SyncChange(status, artifact, target))
         return changes
 
-    def apply(self, changes: Iterable[SyncChange]) -> int:
+    def apply(
+        self,
+        changes: Iterable[SyncChange],
+        cancelled: Callable[[], bool] | None = None,
+    ) -> int:
         actionable = [
             change for change in changes
             if change.status in (ChangeKind.CREATE, ChangeKind.UPDATE)
@@ -183,6 +190,8 @@ class Synchronizer:
         written = 0
         try:
             for change in actionable:
+                if cancelled and cancelled():
+                    raise RuntimeError("Operação cancelada pelo usuário.")
                 change.path.parent.mkdir(parents=True, exist_ok=True)
                 descriptor, temporary_name = tempfile.mkstemp(
                     prefix=f".{change.path.name}.", suffix=".tmp", dir=change.path.parent
