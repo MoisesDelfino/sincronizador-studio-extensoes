@@ -46,7 +46,23 @@ Dentro da pasta clonada, abra o arquivo correspondente ao seu sistema:
 Na primeira abertura, a ferramenta cria um ambiente Python próprio, instala as dependências e baixa o navegador usado na autenticação. Esse processo requer internet e pode levar alguns minutos. Nas próximas aberturas, a inicialização será mais rápida.
 
 - **macOS:** na primeira vez, clique com o botão direito no arquivo `.command` e selecione **Abrir**.
-- **Linux:** se necessário, habilite **Permitir executar como programa** nas propriedades do arquivo `.desktop`.
+- **Linux:** no primeiro uso, clique com o botão direito em `Abrir Studio Sync.desktop` e escolha **Permitir iniciar**. Depois, abra-o com dois cliques. Se essa opção não aparecer, execute uma vez `./Abrir\ Studio\ Sync.sh` pelo terminal; a ferramenta criará o atalho **Studio Sync** no menu de aplicativos.
+
+### Se o atalho não abrir
+
+Abra um terminal dentro da pasta `sincronizador-studio-extensoes` e execute:
+
+```bash
+python3 iniciar.py
+```
+
+No Windows, se o comando acima não for reconhecido, use:
+
+```powershell
+py iniciar.py
+```
+
+Esse modo executa o mesmo inicializador e também prepara automaticamente as dependências na primeira abertura. Ele não depende do atalho do sistema operacional.
 
 O Studio Sync funciona somente enquanto estiver aberto.
 
@@ -88,3 +104,4 @@ Por segurança, a restauração é bloqueada quando algum desses arquivos foi ed
 - **Falha ao autenticar ou consultar:** confira a conexão com a rede corporativa ou VPN.
 - **Verificação de versão indisponível:** a ferramenta abrirá a versão local; confira a internet, o Git e se o repositório possui alterações locais.
 - **Primeira abertura não conclui:** confirme que o Python 3.10+ está instalado e tente novamente com acesso à internet.
+- **Atalho não abre:** abra um terminal na pasta do projeto e execute `python3 iniciar.py` (`py iniciar.py` no Windows).
