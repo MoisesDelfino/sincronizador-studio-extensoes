@@ -31,22 +31,38 @@ Isso criará a pasta `sincronizador-studio-extensoes`. Abra essa pasta no explor
 
 Se preferir uma interface gráfica, use o GitHub Desktop e escolha **File → Clone repository → URL**, informando o mesmo endereço do repositório.
 
-### 2. Abrir o inicializador
+### 2. Fazer a primeira execução pelo terminal
 
-Dentro da pasta clonada, abra o arquivo correspondente ao seu sistema:
+Na primeira execução, não use o atalho. Abra um terminal dentro da pasta `sincronizador-studio-extensoes` e execute:
+
+```bash
+python3 iniciar.py
+```
+
+No Windows, use:
+
+```powershell
+py iniciar.py
+```
+
+Esse primeiro início prepara automaticamente o ambiente e disponibiliza o atalho para as próximas execuções.
+
+### 3. Aguardar a primeira preparação
+
+A ferramenta cria um ambiente Python próprio, instala as dependências e baixa o navegador usado na autenticação. Esse processo requer internet e pode levar alguns minutos.
+
+### 4. Usar o atalho nas próximas execuções
+
+Depois que a primeira preparação terminar, use o atalho correspondente ao seu sistema:
 
 | Sistema | Arquivo |
 | --- | --- |
 | Windows | `Abrir Studio Sync.bat` |
 | macOS | `Abrir Studio Sync.command` |
-| Linux | `Abrir Studio Sync.desktop` |
+| Linux | **Studio Sync**, no menu de aplicativos, ou `Abrir Studio Sync.desktop` |
 
-### 3. Aguardar a primeira preparação
-
-Na primeira abertura, a ferramenta cria um ambiente Python próprio, instala as dependências e baixa o navegador usado na autenticação. Esse processo requer internet e pode levar alguns minutos. Nas próximas aberturas, a inicialização será mais rápida.
-
-- **macOS:** na primeira vez, clique com o botão direito no arquivo `.command` e selecione **Abrir**.
-- **Linux:** no primeiro uso, clique com o botão direito em `Abrir Studio Sync.desktop` e escolha **Permitir iniciar**. Depois, abra-o com dois cliques. Se essa opção não aparecer, execute uma vez `./Abrir\ Studio\ Sync.sh` pelo terminal; a ferramenta criará o atalho **Studio Sync** no menu de aplicativos.
+- **macOS:** se necessário, clique com o botão direito no arquivo `.command` e selecione **Abrir**.
+- **Linux:** prefira o atalho **Studio Sync** criado no menu de aplicativos. Para usar o arquivo `.desktop`, talvez seja necessário clicar nele com o botão direito e escolher **Permitir iniciar**.
 
 ### Se o atalho não abrir
 
@@ -62,14 +78,14 @@ No Windows, se o comando acima não for reconhecido, use:
 py iniciar.py
 ```
 
-Esse modo executa o mesmo inicializador e também prepara automaticamente as dependências na primeira abertura. Ele não depende do atalho do sistema operacional.
+Esse comando pode ser usado sempre que o atalho não funcionar.
 
 O Studio Sync funciona somente enquanto estiver aberto.
 
 ## Como usar
 
 1. Conecte-se à rede Betha ou à VPN.
-2. Abra o Studio Sync pelo arquivo correspondente ao seu sistema.
+2. Na primeira execução, inicie pelo terminal; nas seguintes, use o atalho disponível.
 3. Entre no Studio Extensões e conclua o MFA.
 4. Selecione a entidade e o sistema.
 5. Escolha a pasta local e os tipos de artefato.

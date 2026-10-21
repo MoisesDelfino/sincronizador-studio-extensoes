@@ -58,8 +58,10 @@ class LinuxIntegrationTests(unittest.TestCase):
             installed = home / ".local/share/icons/hicolor/512x512/apps/studio-sync.png"
             self.assertEqual(installed.read_bytes(), b"custom-icon")
             launcher = home / ".local/share/applications/sincronizador-studio.desktop"
-            self.assertIn("iniciar.py", launcher.read_text(encoding="utf-8"))
-            self.assertNotIn("sincronizar_studio.py", launcher.read_text(encoding="utf-8"))
+            launcher_content = launcher.read_text(encoding="utf-8")
+            self.assertIn("iniciar.py", launcher_content)
+            self.assertNotIn("sincronizar_studio.py", launcher_content)
+            self.assertIn(f"Icon={installed}", launcher_content)
 
 
 class RepositoryUpdateTests(unittest.TestCase):
