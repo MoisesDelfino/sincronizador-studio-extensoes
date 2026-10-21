@@ -52,11 +52,17 @@ def authenticate_interactively(
     timeout_seconds: int = 600,
     status: Callable[[str], None] | None = None,
     reset_session: bool = False,
+    cancelled: Callable[[], bool] | None = None,
 ) -> SessionCredentials:
     """Abre o login oficial e captura somente a sessão resultante.
 
     Usuário, senha e MFA são informados diretamente nas páginas da Betha.
     """
+    def ensure_active() -> None:
+        if cancelled and cancelled():
+            raise AuthenticationError("Autenticação cancelada pelo usuário.")
+
+    ensure_active()
     if getattr(sys, "frozen", False):
         bundled_browsers = Path(getattr(sys, "_MEIPASS")) / "ms-playwright"
         if bundled_browsers.exists():
@@ -101,6 +107,7 @@ def authenticate_interactively(
                 captured["user_access"] = user_access.strip()
 
     report("Abrindo o login oficial da Betha...")
+    ensure_active()
     with sync_playwright() as playwright:
         try:
             context = playwright.chromium.launch_persistent_context(
@@ -114,11 +121,13 @@ def authenticate_interactively(
         context.on("request", inspect_request)
         page = context.pages[0] if context.pages else context.new_page()
         page.goto(SCRIPTS_URL, wait_until="domcontentloaded", timeout=120_000)
+        ensure_active()
         report("Conclua o login e o MFA na janela da Betha.")
 
         deadline = time.monotonic() + timeout_seconds
         try:
             while time.monotonic() < deadline:
+                ensure_active()
                 with lock:
                     capture_selected_context(page.url)
                     token = captured.get("access_token", "")
