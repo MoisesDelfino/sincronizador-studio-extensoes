@@ -1,0 +1,21 @@
+{
+  "summary": {
+    "titulo": "Artefato de contrato",
+    "referencia": {
+      "id": 1001,
+      "revisao": 42
+    }
+  },
+  "detail": {
+    "tipo": "SCRIPT",
+    "titulo": "Artefato de contrato",
+    "referencia": {
+      "id": 1001,
+      "revisao": 42
+    }
+  },
+  "revision": {
+    "id": 42,
+    "codigoFonte": "println 'contrato'"
+  }
+}

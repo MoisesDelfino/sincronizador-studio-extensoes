@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import unittest
 import tempfile
 from pathlib import Path
@@ -34,6 +35,24 @@ class FakeSession:
 
 
 class StudioApiTests(unittest.TestCase):
+    def test_contract_fixture_fetches_every_supported_artifact_kind(self) -> None:
+        fixture_path = Path(__file__).with_name("fixtures") / "studio_artifact.json"
+        fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as directory:
+            for kind in ArtifactKind:
+                session = FakeSession([
+                    FakeResponse(fixture["detail"]),
+                    FakeResponse(fixture["revision"]),
+                ])
+                api = StudioApi(
+                    SessionCredentials("token", "context"),
+                    session=session,  # type: ignore[arg-type]
+                    cache=ArtifactCache(Path(directory) / kind.value),
+                )
+                artifact = api.fetch_artifact(kind, fixture["summary"])
+                self.assertEqual(kind, artifact.kind)
+                self.assertEqual("println 'contrato'", artifact.source_code)
+
     def test_reuses_cached_artifact_revision_without_http_requests(self) -> None:
         summary = {
             "titulo": "Componente",
