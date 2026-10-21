@@ -45,9 +45,13 @@ class AppState:
     def begin_operation(self) -> None:
         self.cancel_event.clear()
 
-    def cancel_operation(self) -> None:
-        self.cancel_event.set()
-        self.update("Cancelando operação...", True)
+    def cancel_operation(self) -> bool:
+        with self.lock:
+            if not self.busy:
+                return False
+            self.cancel_event.set()
+            self.status = "Cancelando operação..."
+            return True
 
     def cancelled(self) -> bool:
         return self.cancel_event.is_set()
@@ -178,8 +182,7 @@ class Handler(BaseHTTPRequestHandler):
             elif self.path == "/api/undo":
                 self.undo_changes()
             elif self.path == "/api/cancel":
-                STATE.cancel_operation()
-                self.send_json({"cancelled": True})
+                self.send_json({"cancelled": STATE.cancel_operation()})
             elif self.path == "/api/shutdown":
                 self.send_json({"ok": True})
                 threading.Thread(target=self.server.shutdown, daemon=True).start()

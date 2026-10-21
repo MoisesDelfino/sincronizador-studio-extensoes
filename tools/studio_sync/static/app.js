@@ -270,7 +270,8 @@ $('#loading-cancel').onclick = async () => {
   actionController.abort();
   $('#loading-cancel').disabled = true;
   $('#loading-message').textContent = 'Cancelando operação...';
-  try { await request('/api/cancel', {method: 'POST'}); } catch (_) {}
+  try { await request('/api/cancel', {method: 'POST'}); }
+  catch (_) { toast('A aplicação foi atualizada. Feche-a e abra novamente para habilitar o cancelamento.'); }
 };
 
 $('#login').onclick = () => action(signal => request('/api/authenticate', {
