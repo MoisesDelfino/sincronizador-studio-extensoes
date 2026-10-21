@@ -7,8 +7,12 @@
 3. Execute `python3 validar.py` na raiz do projeto.
 4. Faça uma verificação manual usando uma pasta temporária, nunca um repositório de trabalho sem backup.
 5. Abra um Pull Request e revise o diff antes do merge.
+6. Depois do smoke test e da revisão, adicione o rótulo `merge-seguro`. Quando o check
+   `Validate / tests` passar, o GitHub fará squash merge e excluirá a branch remota.
 
-Não faça push direto na `main`. Quando o GitHub Actions estiver disponível, configure a proteção da branch para exigir o check `Validate / tests` e proibir force-push e exclusão.
+Não faça push direto na `main`. A proteção da branch exige Pull Request, o check
+`Validate / tests` e bloqueia force-push e exclusão. A automação ignora PRs em rascunho,
+PRs sem o rótulo `merge-seguro` e PRs abertas por usuários externos.
 
 ## Smoke test antes do merge
 
@@ -29,7 +33,8 @@ Não faça push direto na `main`. Quando o GitHub Actions estiver disponível, c
 - mantenha a versão anterior publicada para rollback imediato;
 - não trate um commit sem tag como versão estável para usuários finais.
 
-Enquanto o GitHub Actions estiver bloqueado, rode `python3 validar.py` localmente e publique somente depois do smoke test manual.
+Se o GitHub Actions estiver indisponível, rode `python3 validar.py` localmente, faça o
+smoke test e aguarde sua normalização. Não contorne a proteção da `main`.
 
 ## Política de custo zero
 

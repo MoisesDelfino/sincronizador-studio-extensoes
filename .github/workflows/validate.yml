@@ -2,6 +2,7 @@ name: Validate
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
   push:
     branches: [main]
 
@@ -27,3 +28,24 @@ jobs:
           node-version: "22"
       - run: python -m pip install -r tools/studio_sync/requirements.txt
       - run: python validar.py
+
+  merge:
+    name: Merge seguro
+    needs: tests
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.user.login == github.repository_owner &&
+      contains(github.event.pull_request.labels.*.name, 'merge-seguro')
+    # Runner padrão gratuito para este repositório público. Não trocar por larger runner.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_URL: ${{ github.event.pull_request.html_url }}
+    steps:
+      - name: Ativar merge automático após os checks obrigatórios
+        run: gh pr merge --auto --squash --delete-branch "$PR_URL"
