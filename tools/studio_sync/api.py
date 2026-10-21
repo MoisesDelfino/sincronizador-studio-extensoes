@@ -18,7 +18,7 @@ from .cache import ArtifactCache
 AUTH_BASE = "https://plataforma-autorizacoes.betha.cloud/user-accounts/v0.1/api"
 EXTENSIONS_BASE = "https://plataforma-extensoes.betha.cloud/api"
 SCRIPTS_BASE = "https://plataforma-scripts.betha.cloud/scripts/v1/api"
-REPORTS_BASE = "https://plataforma-relatorios.betha.cloud/api"
+REPORTS_BASE = "https://plataforma-relatorios.betha.cloud/relatorios/v1/api"
 ORIGIN = "https://scripts.plataforma.betha.cloud"
 REPORTS_ORIGIN = "https://relatorios.plataforma.betha.cloud"
 
