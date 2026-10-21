@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import os
 import threading
 import webbrowser
 from collections import Counter
@@ -104,6 +105,7 @@ class AppState:
                 "entities": sorted(entities.values(), key=lambda item: item["label"].casefold()),
                 "counts": counts,
                 "canUndo": bool(self.last_backup_id and self.root),
+                "versionStatus": os.environ.get("STUDIO_SYNC_VERSION_STATUS", "local"),
             }
 
 
