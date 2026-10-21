@@ -14,9 +14,24 @@ VENV = RAIZ / ".venv"
 NAVEGADORES = RAIZ / ".browsers"
 REQUISITOS = RAIZ / "tools" / "studio_sync" / "requirements.txt"
 MARCA = RAIZ / ".preparado"
+ICONE = RAIZ / "assets" / "studio-sync.png"
 
 
 LIBS = RAIZ / ".libs"
+
+
+def instalar_icone_linux() -> None:
+    """Registra o ícone no tema do usuário sem exigir acesso administrativo."""
+    if not sys.platform.startswith("linux") or not ICONE.exists():
+        return
+    destino = Path.home() / ".local" / "share" / "icons" / "hicolor" / "512x512" / "apps" / "studio-sync.png"
+    try:
+        destino.parent.mkdir(parents=True, exist_ok=True)
+        if not destino.exists() or destino.read_bytes() != ICONE.read_bytes():
+            shutil.copy2(ICONE, destino)
+    except OSError:
+        # O ícone é apenas visual e não deve impedir a abertura da aplicação.
+        pass
 
 
 def python_do_venv() -> Path:
@@ -65,6 +80,7 @@ def main() -> int:
         print("É necessário Python 3.10 ou mais recente.")
         return 1
     env = dict(os.environ, PLAYWRIGHT_BROWSERS_PATH=str(NAVEGADORES))
+    instalar_icone_linux()
     try:
         if not MARCA.exists():
             preparar(env)

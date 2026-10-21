@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
+
+import iniciar
 
 from tools.studio_sync.platform import choose_folder
 
@@ -42,6 +46,17 @@ class FolderDialogTests(unittest.TestCase):
         self.assertEqual("/home/teste/scripts", choose_folder())
         self.assertIn("--attach=98765", run.call_args_list[1].args[0])
 
+
+class LinuxIconTests(unittest.TestCase):
+    def test_installs_icon_in_user_theme(self) -> None:
+        with TemporaryDirectory() as temporary:
+            source = Path(temporary) / "source.png"
+            source.write_bytes(b"custom-icon")
+            home = Path(temporary) / "home"
+            with patch.object(iniciar, "ICONE", source), patch.object(iniciar.Path, "home", return_value=home), patch.object(iniciar.sys, "platform", "linux"):
+                iniciar.instalar_icone_linux()
+            installed = home / ".local/share/icons/hicolor/512x512/apps/studio-sync.png"
+            self.assertEqual(installed.read_bytes(), b"custom-icon")
 
 if __name__ == "__main__":
     unittest.main()
