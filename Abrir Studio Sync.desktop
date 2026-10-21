@@ -1,7 +1,8 @@
 [Desktop Entry]
 Type=Application
 Name=Studio Sync
-Comment=Sincronize JOBs e componentes do Studio Extensões
+Comment=Sincronize scripts e extensões do Studio Extensões
 Exec=sh -c 'cd "$(dirname "%k")" && python3 iniciar.py'
 Terminal=false
+Icon=studio-sync
 Categories=Development;Utility;
