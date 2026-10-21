@@ -2,7 +2,7 @@
 Type=Application
 Name=Studio Sync
 Comment=Sincronize scripts e extensões do Studio Extensões
-Exec=sh -c 'cd "$(dirname "%k")" && python3 iniciar.py'
+Exec=sh -c "cd \"\$(dirname \"\$1\")\"; exec python3 iniciar.py" _ %k
 Terminal=false
 Icon=studio-sync
-Categories=Development;Utility;
+Categories=Utility;
