@@ -4,6 +4,20 @@ const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({
 }[char]));
 const kindLabel = kind => kind === 'JOB' ? 'SCRIPT' : kind;
 
+function setTheme(theme) {
+  const light = theme === 'light';
+  document.documentElement.dataset.theme = light ? 'light' : 'dark';
+  localStorage.setItem('studio-sync-theme', light ? 'light' : 'dark');
+  const toggle = $('#theme-toggle');
+  toggle.setAttribute('aria-pressed', String(light));
+  toggle.setAttribute('aria-label', light ? 'Ativar modo escuro' : 'Ativar modo claro');
+  toggle.title = light ? 'Ativar modo escuro' : 'Ativar modo claro';
+  toggle.querySelector('span').textContent = light ? '☾' : '☀';
+  document.querySelector('meta[name="theme-color"]').content = light ? '#ffffff' : '#11131c';
+  $('.mark').src = light ? 'studio-sync-light.png' : 'studio-sync.png';
+  document.querySelector('link[rel="icon"]').href = light ? 'studio-sync-light.png' : 'studio-sync.png';
+}
+
 let busy = false;
 let authenticated = false;
 let folderParent = '';
@@ -389,10 +403,15 @@ $('#choose').onclick = () => {
   document.body.classList.add('modal-open');
   browseFolder($('#folder').value);
 };
-$('#folder-cancel').onclick = () => {
+function closeFolderDialog() {
   folderController?.abort();
   $('#folder-modal').hidden = true;
   document.body.classList.remove('modal-open');
+  $('#choose').focus();
+}
+$('#folder-cancel').onclick = closeFolderDialog;
+$('#folder-modal').onclick = event => {
+  if (event.target === $('#folder-modal')) closeFolderDialog();
 };
 $('#folder-up').onclick = () => folderParent && browseFolder(folderParent);
 $('#folder-go').onclick = () => browseFolder($('#folder-current').value);
@@ -405,6 +424,17 @@ $('#folder-select').onclick = () => {
   if (changed) invalidateAnalysis();
   updateWizard();
 };
+
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  if (!$('#folder-modal').hidden) {
+    event.preventDefault();
+    closeFolderDialog();
+  } else if (!$('#loading').hidden && actionController) {
+    event.preventDefault();
+    $('#loading-cancel').click();
+  }
+});
 
 document.querySelectorAll('.wizard-step').forEach(step => {
   step.onclick = () => goToStep(Number(step.dataset.step));
@@ -528,5 +558,10 @@ $('#close').onclick = async () => {
   document.body.innerHTML = '<main><section class="page-heading"><div><span class="eyebrow">STUDIO EXTENSÕES</span><h1>Aplicação encerrada</h1><p>Esta aba já pode ser fechada.</p></div></section></main>';
 };
 
+$('#theme-toggle').onclick = () => {
+  setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
+};
+
+setTheme(document.documentElement.dataset.theme);
 refresh();
 setInterval(() => { if (busy) refresh(); }, 900);
