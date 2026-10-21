@@ -47,16 +47,19 @@ class FolderDialogTests(unittest.TestCase):
         self.assertIn("--attach=98765", run.call_args_list[1].args[0])
 
 
-class LinuxIconTests(unittest.TestCase):
-    def test_installs_icon_in_user_theme(self) -> None:
+class LinuxIntegrationTests(unittest.TestCase):
+    def test_installs_icon_and_launcher_in_user_profile(self) -> None:
         with TemporaryDirectory() as temporary:
             source = Path(temporary) / "source.png"
             source.write_bytes(b"custom-icon")
             home = Path(temporary) / "home"
             with patch.object(iniciar, "ICONE", source), patch.object(iniciar.Path, "home", return_value=home), patch.object(iniciar.sys, "platform", "linux"):
-                iniciar.instalar_icone_linux()
+                iniciar.instalar_integracao_linux()
             installed = home / ".local/share/icons/hicolor/512x512/apps/studio-sync.png"
             self.assertEqual(installed.read_bytes(), b"custom-icon")
+            launcher = home / ".local/share/applications/sincronizador-studio.desktop"
+            self.assertIn("iniciar.py", launcher.read_text(encoding="utf-8"))
+            self.assertNotIn("sincronizar_studio.py", launcher.read_text(encoding="utf-8"))
 
 
 class RepositoryUpdateTests(unittest.TestCase):

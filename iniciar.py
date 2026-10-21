@@ -51,17 +51,34 @@ def atualizar_repositorio(env: dict) -> bool:
     return True
 
 
-def instalar_icone_linux() -> None:
-    """Registra o ícone no tema do usuário sem exigir acesso administrativo."""
+def instalar_integracao_linux() -> None:
+    """Mantém o ícone e o atalho do usuário apontando para este inicializador."""
     if not sys.platform.startswith("linux") or not ICONE.exists():
         return
-    destino = Path.home() / ".local" / "share" / "icons" / "hicolor" / "512x512" / "apps" / "studio-sync.png"
+    home = Path.home()
+    destino = home / ".local" / "share" / "icons" / "hicolor" / "512x512" / "apps" / "studio-sync.png"
+    atalho = home / ".local" / "share" / "applications" / "sincronizador-studio.desktop"
+    conteudo_atalho = f"""[Desktop Entry]
+Type=Application
+Name=Studio Sync
+Comment=Sincronize scripts e extensões do Studio Extensões
+Exec=/usr/bin/env python3 \"{RAIZ / 'iniciar.py'}\"
+Path={RAIZ}
+Terminal=false
+Icon=studio-sync
+Categories=Development;Utility;
+StartupNotify=true
+"""
     try:
         destino.parent.mkdir(parents=True, exist_ok=True)
         if not destino.exists() or destino.read_bytes() != ICONE.read_bytes():
             shutil.copy2(ICONE, destino)
+        atalho.parent.mkdir(parents=True, exist_ok=True)
+        if not atalho.exists() or atalho.read_text(encoding="utf-8") != conteudo_atalho:
+            atalho.write_text(conteudo_atalho, encoding="utf-8")
+            atalho.chmod(0o755)
     except OSError:
-        # O ícone é apenas visual e não deve impedir a abertura da aplicação.
+        # A integração é visual e não deve impedir a abertura da aplicação.
         pass
 
 
@@ -112,7 +129,7 @@ def main() -> int:
         return 1
     env = dict(os.environ, PLAYWRIGHT_BROWSERS_PATH=str(NAVEGADORES))
     atualizar_repositorio(env)
-    instalar_icone_linux()
+    instalar_integracao_linux()
     try:
         if not MARCA.exists():
             preparar(env)
