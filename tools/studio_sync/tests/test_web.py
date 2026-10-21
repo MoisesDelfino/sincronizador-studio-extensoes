@@ -23,6 +23,7 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn("CONFIRMAR RESTAURAÇÃO", javascript)
         self.assertIn("function goToStep(step)", javascript)
         self.assertIn("invalidateAnalysis", javascript)
+        self.assertIn("kind === 'JOB' ? 'SCRIPT'", javascript)
         self.assertFalse(state["authenticated"])
         self.assertFalse(state["canUndo"])
 

@@ -2,6 +2,7 @@ const $ = selector => document.querySelector(selector);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
 }[char]));
+const kindLabel = kind => kind === 'JOB' ? 'SCRIPT' : kind;
 
 let busy = false;
 let authenticated = false;
@@ -99,7 +100,7 @@ function synchronizationToast(result) {
     <ul class="toast-items">${visible.map(item => `
       <li title="${esc(item.path)}">
         <span class="toast-action ${esc(item.action)}">${item.action === 'CRIAR' ? 'CRIADO' : 'ATUALIZADO'}</span>
-        <div><strong>${esc(item.title)}</strong><small>${esc(item.kind)}</small></div>
+        <div><strong>${esc(item.title)}</strong><small>${esc(kindLabel(item.kind))}</small></div>
       </li>`).join('')}
     </ul>
     ${remaining ? `<p class="toast-more">e mais ${remaining} arquivo(s).</p>` : ''}`;
@@ -163,7 +164,7 @@ async function request(url, options = {}) {
 function searchedChanges() {
   const query = $('#script-search').value.trim().toLocaleLowerCase('pt-BR');
   if (!query) return changes;
-  return changes.filter(change => [change.title, change.kind, change.message, change.path]
+  return changes.filter(change => [change.title, kindLabel(change.kind), change.message, change.path]
     .some(value => String(value || '').toLocaleLowerCase('pt-BR').includes(query)));
 }
 
@@ -228,6 +229,7 @@ function renderChanges() {
   else if (pageItems.length && !rows.length) emptyMessage = 'Nenhum item desta página corresponde às situações selecionadas.';
   $('#rows').innerHTML = rows.length ? rows.map(change => {
     const detail = change.message || change.path || '';
+    const displayedKind = kindLabel(change.kind);
     const problem = change.status === 'CONFLITO' || change.status === 'ERRO';
     const checkbox = change.actionable
       ? `<input class="change-check" type="checkbox" data-index="${change.index}" ${selectedChanges.has(change.index) ? 'checked' : ''} aria-label="Selecionar ${esc(change.title)}">`
@@ -235,10 +237,10 @@ function renderChanges() {
     return `<tr class="${problem ? 'problem-row' : ''}">
       <td class="select-column">${checkbox}</td>
       <td class="status-cell"><span class="badge ${esc(change.status)}">${esc(change.status)}</span></td>
-      <td class="type-cell" title="${esc(change.kind)}">${esc(change.kind)}</td>
+      <td class="type-cell" title="${esc(displayedKind)}">${esc(displayedKind)}</td>
       <td class="file-name" title="${esc(change.title)}">
         <span class="file-title">${esc(change.title)}</span>
-        <small class="mobile-kind">${esc(change.kind)}</small>
+        <small class="mobile-kind">${esc(displayedKind)}</small>
         ${detail ? `<small class="mobile-detail ${problem ? 'problem-detail' : ''}">${esc(detail)}</small>` : ''}
       </td>
       <td class="detail ${problem ? 'problem-detail' : ''}">${esc(detail)}</td>
