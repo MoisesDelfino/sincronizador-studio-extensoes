@@ -18,7 +18,10 @@ class WebSmokeTests(unittest.TestCase):
         state = AppState()
         state.begin_operation()
         self.assertFalse(state.cancelled())
-        state.cancel_operation()
+        self.assertFalse(state.cancel_operation())
+        self.assertFalse(state.public()["busy"])
+        state.update("Processando...", True)
+        self.assertTrue(state.cancel_operation())
         self.assertTrue(state.cancelled())
         self.assertTrue(state.public()["busy"])
         with self.assertRaisesRegex(RuntimeError, "cancelada"):
