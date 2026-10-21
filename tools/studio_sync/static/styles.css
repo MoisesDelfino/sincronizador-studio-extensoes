@@ -74,6 +74,8 @@ h1 { margin: 6px 0 4px; font-size: 28px; letter-spacing: -.025em; }
 .wizard-card-copy { max-width: 720px; margin-bottom: 24px; }
 .wizard-card-copy h2 { margin: 6px 0 7px; font-size: 22px; }
 .wizard-card-copy p, .results-head p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.context-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.context-heading .button { flex: 0 0 auto; margin-top: 0; }
 .auth-panel { max-width: 780px; margin: 0 auto; }
 .auth-panel .network-notice { margin: 0 0 18px; }
 .account-summary { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: #10131c; }
@@ -240,6 +242,8 @@ td { padding: 10px 11px; border-bottom: 1px solid #242a38; color: #d9dfeb; verti
   .wizard-step:nth-child(2) { border-right: 0; }
   .wizard-step:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
   .context-grid { grid-template-columns: 1fr; }
+  .context-heading { align-items: stretch; flex-direction: column; margin-bottom: 24px; }
+  .context-heading .wizard-card-copy { margin-bottom: 0; }
   .account-summary, .results-head { align-items: stretch; flex-direction: column; }
   .account-summary .button { width: 100%; }
   .results-actions { justify-content: flex-start; }

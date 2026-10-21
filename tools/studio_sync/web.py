@@ -171,6 +171,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if self.path == "/api/authenticate":
                 self.authenticate()
+            elif self.path == "/api/accesses":
+                self.refresh_accesses()
             elif self.path == "/api/folders":
                 self.list_folders()
             elif self.path == "/api/systems":
@@ -219,6 +221,42 @@ class Handler(BaseHTTPRequestHandler):
         STATE.user = str(user.get("name") or user.get("nome") or user.get("email") or "Autenticado")
         entity_count = len({item.entity_id for item in accesses})
         STATE.update(f"Sessão conectada. {entity_count} entidade(s) disponível(is).", False)
+        self.send_json(STATE.public())
+
+    def refresh_accesses(self) -> None:
+        STATE.begin_operation()
+        if STATE.api is None:
+            raise ValueError("Faça a autenticação primeiro.")
+        STATE.update("Atualizando entidades e sistemas permitidos...", True)
+        refreshed = STATE.api.list_accesses(quick=True)
+        STATE.ensure_not_cancelled()
+        with STATE.lock:
+            previous = {
+                (item.database_id, item.entity_id, item.system_id): item
+                for item in STATE.accesses
+            }
+            accesses = [
+                replace(
+                    item,
+                    label=(
+                        previous.get((item.database_id, item.entity_id, item.system_id), item).label
+                        if item.label == f"Entidade {item.entity_id}"
+                        else item.label
+                    ),
+                    system_name=(
+                        previous.get((item.database_id, item.entity_id, item.system_id), item).system_name
+                        if item.system_name.startswith("Sistema ")
+                        else item.system_name
+                    ),
+                )
+                for item in refreshed
+            ]
+            STATE.accesses = accesses
+            STATE.summaries = []
+            STATE.changes = []
+            STATE.duplicate_names = set()
+        entity_count = len({item.entity_id for item in accesses})
+        STATE.update(f"Acessos atualizados. {entity_count} entidade(s) disponível(is).", False)
         self.send_json(STATE.public())
 
     def list_folders(self) -> None:

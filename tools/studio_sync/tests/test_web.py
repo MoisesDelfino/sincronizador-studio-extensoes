@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import Mock, patch
 
-from tools.studio_sync.web import AppState, STATIC
+from tools.studio_sync.models import AccessOption
+from tools.studio_sync.web import AppState, Handler, STATIC
 
 
 class WebSmokeTests(unittest.TestCase):
@@ -19,6 +21,7 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn('id="close">Sair</button>', html)
         self.assertIn("Moises Delfino - Vertical Contratos", html)
         self.assertNotIn('id="close">Encerrar</button>', html)
+        self.assertIn('id="refresh-accesses"', html)
         self.assertEqual(html.count('data-step="'), 4)
         self.assertIn('data-panel="1"', html)
         self.assertIn('data-panel="4"', html)
@@ -29,6 +32,9 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn("invalidateAnalysis", javascript)
         self.assertIn("kind === 'JOB' ? 'SCRIPT'", javascript)
         self.assertIn("Versão atual", javascript)
+        source = (STATIC / "source.js").read_text(encoding="utf-8")
+        self.assertIn("/api/accesses", source)
+        self.assertIn("Atualizar acessos", html)
         self.assertEqual("local", state["versionStatus"])
         self.assertFalse(state["authenticated"])
         self.assertFalse(state["canUndo"])
@@ -47,6 +53,28 @@ class WebSmokeTests(unittest.TestCase):
             state.ensure_not_cancelled()
         state.begin_operation()
         self.assertFalse(state.cancelled())
+
+    def test_refreshes_accesses_without_reauthentication(self) -> None:
+        state = AppState()
+        state.api = Mock()
+        updated = AccessOption("Entidade nova", "2", "20", "56", "Contratos")
+        state.api.list_accesses.return_value = [updated]
+        state.summaries = [Mock()]
+        state.changes = [Mock()]
+        state.duplicate_names = {"duplicado"}
+        handler = object.__new__(Handler)
+        handler.send_json = Mock()
+
+        with patch("tools.studio_sync.web.STATE", state):
+            handler.refresh_accesses()
+
+        self.assertEqual([updated], state.accesses)
+        self.assertEqual([], state.summaries)
+        self.assertEqual([], state.changes)
+        self.assertEqual(set(), state.duplicate_names)
+        self.assertFalse(state.busy)
+        state.api.list_accesses.assert_called_once_with(quick=True)
+        handler.send_json.assert_called_once()
 
 
 if __name__ == "__main__":

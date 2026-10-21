@@ -174,14 +174,16 @@ class StudioApi:
         )
 
     def _get(self, url: str, **kwargs: Any) -> requests.Response:
+        attempts = int(kwargs.pop("_attempts", 4))
+        request_timeout = float(kwargs.pop("_timeout", self.timeout))
         last_error: Exception | None = None
-        for attempt in range(4):
+        for attempt in range(attempts):
             try:
-                response = self.session.get(url, timeout=self.timeout, **kwargs)
+                response = self.session.get(url, timeout=request_timeout, **kwargs)
                 if response.status_code in (401, 403):
                     raise StudioApiError("Sessão expirada ou acesso não autorizado.")
                 if response.status_code == 429 or response.status_code >= 500:
-                    if attempt < 3:
+                    if attempt < attempts - 1:
                         time.sleep(0.5 * (2**attempt))
                         continue
                 response.raise_for_status()
@@ -190,7 +192,7 @@ class StudioApi:
                 raise
             except requests.RequestException as exc:
                 last_error = exc
-                if attempt < 3:
+                if attempt < attempts - 1:
                     time.sleep(0.5 * (2**attempt))
                     continue
         raise StudioApiError(f"Falha ao consultar {url}: {last_error}")
@@ -220,10 +222,11 @@ class StudioApi:
             raise StudioApiError("Resposta inesperada ao consultar o usuário atual.")
         return data
 
-    def list_accesses(self) -> list[AccessOption]:
+    def list_accesses(self, quick: bool = False) -> list[AccessOption]:
         data = self._json(
             f"{AUTH_BASE}/suite/users/@me/access",
             params={"includeCurrentAsSourceSystem": "true"},
+            **({"_attempts": 1, "_timeout": min(self.timeout, 10)} if quick else {}),
         )
         options: dict[tuple[str, str, str], AccessOption] = {}
         for item in _walk_dicts(data):
@@ -293,7 +296,7 @@ class StudioApi:
             raise StudioApiError(
                 "A API retornou uma estrutura de acessos ainda não reconhecida: " + _shape(data)
             )
-        entity_names = self._resource_names(
+        entity_names = {} if quick else self._resource_names(
             "entities",
             [
                 option.entity_id
@@ -301,7 +304,7 @@ class StudioApi:
                 if option.label == f"Entidade {option.entity_id}"
             ],
         )
-        system_names = self._resource_names(
+        system_names = {} if quick else self._resource_names(
             "systems",
             [option.system_id for option in options.values() if option.system_id and option.system_name.startswith("Sistema ")],
         )

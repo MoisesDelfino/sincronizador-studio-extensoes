@@ -163,6 +163,23 @@ class StudioApiTests(unittest.TestCase):
         self.assertEqual("BETHA SISTEMAS - EXTENSÕES - PR", option.label)
         self.assertEqual("Prestação de Contas", option.system_name)
 
+    def test_quick_access_refresh_skips_name_queries_and_limits_timeout(self) -> None:
+        session = FakeSession(
+            [FakeResponse([{"entity": "4746", "database": "4529", "system": "151"}])]
+        )
+        api = StudioApi(
+            SessionCredentials("token", "context"),
+            timeout=30,
+            session=session,  # type: ignore[arg-type]
+        )
+
+        option = api.list_accesses(quick=True)[0]
+
+        self.assertEqual("Entidade 4746", option.label)
+        self.assertEqual("Sistema não identificado", option.system_name)
+        self.assertEqual(1, len(session.calls))
+        self.assertEqual(10, session.calls[0][1]["timeout"])
+
     def test_expands_system_list_for_one_entity(self) -> None:
         session = FakeSession(
             [
