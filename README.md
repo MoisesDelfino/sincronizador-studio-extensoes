@@ -1,6 +1,6 @@
 # Sincronizador do Studio Extensões
 
-Aplicação local para comparar e sincronizar scripts, componentes, críticas e fontes dinâmicas do Studio Extensões com uma pasta do computador. A interface abre no navegador e não exige terminal nem configuração técnica.
+Aplicação local para comparar e sincronizar scripts, componentes, críticas, fontes dinâmicas e relatórios do Studio Extensões com uma pasta do computador. A interface abre no navegador e não exige terminal nem configuração técnica.
 
 > **Antes de começar:** conecte o computador à rede corporativa ou à VPN da Betha. A autenticação e a consulta dos scripts dependem desse acesso.
 
@@ -37,7 +37,7 @@ A ferramenta lista apenas as **entidades e sistemas aos quais o seu usuário tem
 5. Clique em **Analisar diferenças**. Apenas a página exibida terá o conteúdo carregado.
 6. Pesquise ou filtre os scripts, selecione os desejados e clique em **Sincronizar selecionados**.
 
-Arquivos novos são organizados por tipo: scripts na pasta escolhida, componentes em `Componentes`, críticas em `Criticas` e fontes dinâmicas em `FontesDinamicas`. Se um arquivo com o mesmo nome já existir em outra subpasta, ele é atualizado no local existente.
+Arquivos novos são organizados por tipo: scripts na pasta escolhida, componentes em `Componentes`, críticas em `Criticas`, fontes dinâmicas em `FontesDinamicas` e relatórios JRXML em `Relatorios`. Se um arquivo com o mesmo nome e extensão já existir em outra subpasta, ele é atualizado no local existente.
 
 A análise apenas apresenta uma prévia. Nenhum arquivo é alterado antes da confirmação em **Sincronizar agora**.
 

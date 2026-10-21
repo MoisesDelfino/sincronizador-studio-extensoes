@@ -10,6 +10,7 @@ class ArtifactKind(str, Enum):
     COMPONENT = "COMPONENTE"
     CRITIQUE = "CRITICA"
     DYNAMIC_SOURCE = "FONTE_DINAMICA"
+    REPORT = "RELATORIO"
 
     @property
     def directory(self) -> str:
@@ -18,7 +19,12 @@ class ArtifactKind(str, Enum):
             ArtifactKind.COMPONENT: "Componentes",
             ArtifactKind.CRITIQUE: "Criticas",
             ArtifactKind.DYNAMIC_SOURCE: "FontesDinamicas",
+            ArtifactKind.REPORT: "Relatorios",
         }[self]
+
+    @property
+    def extension(self) -> str:
+        return ".jrxml" if self is ArtifactKind.REPORT else ".groovy"
 
 
 class ChangeKind(str, Enum):
