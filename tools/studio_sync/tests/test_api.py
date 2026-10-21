@@ -74,15 +74,23 @@ class StudioApiTests(unittest.TestCase):
         session = FakeSession([
             FakeResponse({}, content=b'<?xml version="1.0" encoding="UTF-8"?><jasperReport/>')
         ])
-        api = StudioApi(SessionCredentials("token", "context"), session=session)  # type: ignore[arg-type]
-        artifact = api.fetch_artifact(
-            ArtifactKind.REPORT,
-            {"titulo": "Relatório", "referencia": {"id": 1256657, "revisao": 77}},
-        )
+        with tempfile.TemporaryDirectory() as directory:
+            api = StudioApi(
+                SessionCredentials("token", "context"),
+                session=session,  # type: ignore[arg-type]
+                cache=ArtifactCache(Path(directory)),
+            )
+            artifact = api.fetch_artifact(
+                ArtifactKind.REPORT,
+                {"titulo": "Relatório", "referencia": {"id": 1256657, "revisao": 77}},
+            )
         self.assertEqual(ArtifactKind.REPORT, artifact.kind)
         self.assertEqual("1256657", artifact.script_id)
         self.assertIn("<jasperReport/>", artifact.source_code)
-        self.assertIn("/api/relatorios/1256657/download", session.calls[0][0])
+        self.assertEqual(
+            "https://plataforma-relatorios.betha.cloud/relatorios/v1/api/relatorios/1256657/download",
+            session.calls[0][0],
+        )
         self.assertEqual([], session.calls[0][1]["json"])
 
     def test_reuses_cached_artifact_revision_without_http_requests(self) -> None:
