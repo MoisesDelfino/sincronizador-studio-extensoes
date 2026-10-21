@@ -10,8 +10,21 @@ class WebSmokeTests(unittest.TestCase):
         html = (STATIC / "index.html").read_text(encoding="utf-8")
         state = AppState().public()
         self.assertIn("Desfazer última sincronização", html)
+        self.assertIn('id="loading-cancel"', html)
         self.assertFalse(state["authenticated"])
         self.assertFalse(state["canUndo"])
+
+    def test_operation_can_be_cancelled_and_restarted(self) -> None:
+        state = AppState()
+        state.begin_operation()
+        self.assertFalse(state.cancelled())
+        state.cancel_operation()
+        self.assertTrue(state.cancelled())
+        self.assertTrue(state.public()["busy"])
+        with self.assertRaisesRegex(RuntimeError, "cancelada"):
+            state.ensure_not_cancelled()
+        state.begin_operation()
+        self.assertFalse(state.cancelled())
 
 
 if __name__ == "__main__":

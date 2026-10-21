@@ -34,12 +34,27 @@ class AppState:
         self.duplicate_names: set[str] = set()
         self.root: Path | None = None
         self.last_backup_id = ""
+        self.cancel_event = threading.Event()
 
     def update(self, status: str, busy: bool | None = None) -> None:
         with self.lock:
             self.status = status
             if busy is not None:
                 self.busy = busy
+
+    def begin_operation(self) -> None:
+        self.cancel_event.clear()
+
+    def cancel_operation(self) -> None:
+        self.cancel_event.set()
+        self.update("Cancelando operação...", True)
+
+    def cancelled(self) -> bool:
+        return self.cancel_event.is_set()
+
+    def ensure_not_cancelled(self) -> None:
+        if self.cancelled():
+            raise RuntimeError("Operação cancelada pelo usuário.")
 
     def public(self) -> dict[str, Any]:
         with self.lock:
@@ -162,6 +177,9 @@ class Handler(BaseHTTPRequestHandler):
                 self.apply_changes()
             elif self.path == "/api/undo":
                 self.undo_changes()
+            elif self.path == "/api/cancel":
+                STATE.cancel_operation()
+                self.send_json({"cancelled": True})
             elif self.path == "/api/shutdown":
                 self.send_json({"ok": True})
                 threading.Thread(target=self.server.shutdown, daemon=True).start()
@@ -172,15 +190,19 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({"error": str(exc)}, 400)
 
     def authenticate(self) -> None:
+        STATE.begin_operation()
         body = self.read_json()
         STATE.update("Abrindo sua sessão Betha...", True)
         credentials = authenticate_interactively(
             status=lambda value: STATE.update(value, True),
             reset_session=bool(body.get("resetSession")),
         )
+        STATE.ensure_not_cancelled()
         api = StudioApi(credentials)
         user = api.current_user()
+        STATE.ensure_not_cancelled()
         accesses = api.list_accesses()
+        STATE.ensure_not_cancelled()
         STATE.api = api
         STATE.summaries = []
         STATE.changes = []
@@ -248,6 +270,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json(STATE.public())
 
     def analyze(self) -> None:
+        STATE.begin_operation()
         body = self.read_json()
         if STATE.api is None:
             raise ValueError("Faça a autenticação primeiro.")
@@ -273,6 +296,7 @@ class Handler(BaseHTTPRequestHandler):
             raise ValueError("Selecione ao menos um tipo de artefato.")
         STATE.update("Selecionando a entidade...", True)
         STATE.api.select_access(STATE.accesses[access_index])
+        STATE.ensure_not_cancelled()
         STATE.root = root
         STATE.last_backup_id = BackupStore().latest_applied(root)
         STATE.api.cache_hits = 0
@@ -282,7 +306,9 @@ class Handler(BaseHTTPRequestHandler):
         names: list[str] = []
         STATE.update("Carregando a lista de scripts...", True)
         for kind in kinds:
+            STATE.ensure_not_cancelled()
             kind_summaries = STATE.api.list_artifact_summaries(kind)
+            STATE.ensure_not_cancelled()
             summaries.extend((kind, summary) for summary in kind_summaries)
             for summary in kind_summaries:
                 title = str(summary.get("titulo") or summary.get("title") or summary.get("nome") or "")
@@ -300,6 +326,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json(STATE.public())
 
     def load_page(self) -> None:
+        STATE.begin_operation()
         if STATE.api is None or STATE.root is None or not STATE.summaries:
             raise ValueError("Execute a análise antes de carregar uma página.")
         body = self.read_json()
@@ -319,6 +346,7 @@ class Handler(BaseHTTPRequestHandler):
                 selected,
                 duplicate_names=STATE.duplicate_names,
                 progress=lambda value: STATE.update(value, True),
+                cancelled=STATE.cancelled,
             )
             for index, change in zip(missing, analyzed):
                 STATE.changes[index] = change
@@ -330,6 +358,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json({"loaded": len(missing)})
 
     def apply_changes(self) -> None:
+        STATE.begin_operation()
         if STATE.api is None or STATE.root is None or not STATE.changes:
             raise ValueError("Execute a análise antes de sincronizar.")
         body = self.read_json()
@@ -366,7 +395,7 @@ class Handler(BaseHTTPRequestHandler):
         }
         STATE.update("Gravando arquivos com segurança...", True)
         synchronizer = Synchronizer(STATE.api, STATE.root)
-        count = synchronizer.apply(selected)
+        count = synchronizer.apply(selected, cancelled=STATE.cancelled)
         STATE.last_backup_id = synchronizer.last_backup_id
         for index in applied_indexes:
             change = STATE.changes[index]
@@ -382,9 +411,11 @@ class Handler(BaseHTTPRequestHandler):
         })
 
     def undo_changes(self) -> None:
+        STATE.begin_operation()
         if STATE.api is None or STATE.root is None or not STATE.last_backup_id:
             raise ValueError("Não há uma sincronização desta sessão para desfazer.")
         STATE.update("Restaurando os arquivos anteriores...", True)
+        STATE.ensure_not_cancelled()
         count = Synchronizer(STATE.api, STATE.root).undo(STATE.last_backup_id)
         STATE.last_backup_id = ""
         STATE.summaries = []

@@ -152,6 +152,8 @@ td { padding: 10px 11px; border-bottom: 1px solid #242a38; color: #d9dfeb; verti
 .loading-overlay[hidden] { display: none; }
 .loading-card { width: min(440px, 100%); display: flex; align-items: center; gap: 16px; padding: 22px; border: 1px solid #3a4660; border-radius: 11px; background: #161a25; box-shadow: 0 28px 90px rgba(0,0,0,.55); }
 .loading-card div { min-width: 0; }
+.loading-card div { flex: 1; }
+.loading-card .button { flex: 0 0 auto; }
 .loading-card strong { font-size: 14px; }
 .loading-card p { margin: 5px 0 0; color: #b9c5d9; font-size: 12px; line-height: 1.45; }
 .spinner { width: 34px; height: 34px; flex: 0 0 auto; border: 3px solid rgba(121,165,255,.2); border-top-color: #79a5ff; border-radius: 50%; animation: spin .8s linear infinite; }
