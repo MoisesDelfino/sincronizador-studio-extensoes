@@ -142,12 +142,12 @@
 
   <div class="modal-backdrop" id="confirm-modal" hidden>
     <section class="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-description">
-      <div class="confirm-icon" aria-hidden="true">✓</div>
+      <div class="confirm-icon" id="confirm-icon" aria-hidden="true">✓</div>
       <div class="confirm-content">
-        <span class="eyebrow">CONFIRMAR SINCRONIZAÇÃO</span>
+        <span class="eyebrow" id="confirm-eyebrow">CONFIRMAR SINCRONIZAÇÃO</span>
         <h2 id="confirm-title">Sincronizar arquivos selecionados?</h2>
         <p id="confirm-description">Os arquivos locais serão criados ou atualizados com o conteúdo do Studio Extensões.</p>
-        <div class="confirm-summary"><strong id="confirm-count">0</strong><span>arquivo(s) selecionado(s)</span></div>
+        <div class="confirm-summary" id="confirm-summary"><strong id="confirm-count">0</strong><span>arquivo(s) selecionado(s)</span></div>
       </div>
       <div class="confirm-actions">
         <button class="button secondary" id="confirm-cancel">Cancelar</button>
