@@ -20,6 +20,33 @@ ICONE = RAIZ / "assets" / "studio-sync.png"
 LIBS = RAIZ / ".libs"
 
 
+def atualizar_repositorio(env: dict) -> bool:
+    """Atualiza o clone atual sem criar merges nem sobrescrever trabalho local."""
+    if not (RAIZ / ".git").exists() or not shutil.which("git"):
+        return False
+    git_env = dict(env, GIT_TERMINAL_PROMPT="0")
+    try:
+        resultado = subprocess.run(
+            ["git", "pull", "--ff-only"],
+            cwd=RAIZ,
+            env=git_env,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        print("Não foi possível verificar atualizações. Abrindo a versão local.")
+        return False
+    if resultado.returncode:
+        detalhe = (resultado.stderr or resultado.stdout).strip().splitlines()
+        mensagem = detalhe[-1] if detalhe else "falha não identificada"
+        print(f"Atualização ignorada ({mensagem}). Abrindo a versão local.")
+        return False
+    print("Studio Sync atualizado." if "Already up to date" not in resultado.stdout else "Studio Sync já está atualizado.")
+    return True
+
+
 def instalar_icone_linux() -> None:
     """Registra o ícone no tema do usuário sem exigir acesso administrativo."""
     if not sys.platform.startswith("linux") or not ICONE.exists():
@@ -80,6 +107,7 @@ def main() -> int:
         print("É necessário Python 3.10 ou mais recente.")
         return 1
     env = dict(os.environ, PLAYWRIGHT_BROWSERS_PATH=str(NAVEGADORES))
+    atualizar_repositorio(env)
     instalar_icone_linux()
     try:
         if not MARCA.exists():

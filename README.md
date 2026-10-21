@@ -24,6 +24,8 @@ Na primeira execução o aplicativo prepara o ambiente sozinho (ambiente Python 
 
 O Studio Sync funciona somente enquanto está aberto.
 
+Ao abrir, o inicializador executa `git pull --ff-only` no próprio clone para buscar atualizações com segurança. Se não houver internet, Git ou uma atualização direta possível, ele preserva os arquivos existentes e abre a versão local normalmente.
+
 ## Acesso a entidades e sistemas
 
 A ferramenta lista apenas as **entidades e sistemas aos quais o seu usuário tem acesso**. Se uma entidade ou sistema de que você precisa não aparecer, solicite a liberação pelo **Betha Admin**. Depois de concedido o acesso, use **Trocar conta** ou entre novamente para atualizar a lista.
