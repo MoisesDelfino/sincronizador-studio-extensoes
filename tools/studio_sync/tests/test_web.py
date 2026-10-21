@@ -11,6 +11,7 @@ class WebSmokeTests(unittest.TestCase):
         state = AppState().public()
         self.assertIn("Desfazer última sincronização", html)
         self.assertIn('id="loading-cancel"', html)
+        self.assertIn('class="type-column"', html)
         self.assertFalse(state["authenticated"])
         self.assertFalse(state["canUndo"])
 

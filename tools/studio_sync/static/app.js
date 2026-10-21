@@ -173,9 +173,13 @@ function renderChanges() {
       : '<span class="not-actionable" title="Este item precisa ser revisado">—</span>';
     return `<tr class="${problem ? 'problem-row' : ''}">
       <td class="select-column">${checkbox}</td>
-      <td><span class="badge ${esc(change.status)}">${esc(change.status)}</span></td>
-      <td>${esc(change.kind)}</td>
-      <td class="file-name" title="${esc(change.title)}">${esc(change.title)}</td>
+      <td class="status-cell"><span class="badge ${esc(change.status)}">${esc(change.status)}</span></td>
+      <td class="type-cell" title="${esc(change.kind)}">${esc(change.kind)}</td>
+      <td class="file-name" title="${esc(change.title)}">
+        <span class="file-title">${esc(change.title)}</span>
+        <small class="mobile-kind">${esc(change.kind)}</small>
+        ${detail ? `<small class="mobile-detail ${problem ? 'problem-detail' : ''}">${esc(detail)}</small>` : ''}
+      </td>
       <td class="detail ${problem ? 'problem-detail' : ''}">${esc(detail)}</td>
     </tr>`;
   }).join('') : `<tr class="empty"><td colspan="5">${emptyMessage}</td></tr>`;
