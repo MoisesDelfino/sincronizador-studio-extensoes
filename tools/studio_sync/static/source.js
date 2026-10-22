@@ -35,18 +35,19 @@
       const data = await response.json();
       if (!response.ok) throw Error(data.error || 'Não foi possível consultar os sistemas');
       signature = '';
-      await refresh();
+      await refreshSource();
     } catch (error) {
       loadedEntity = '';
       system.innerHTML = `<option>${escapeText(error.message)}</option>`;
     }
   }
 
-  async function refresh() {
+  async function refreshSource() {
     try {
       const response = await fetch('/api/state', {cache: 'no-store'});
       if (!response.ok) return;
       const state = await response.json();
+      if (!state.authenticated && authenticated) await refresh();
       const entities = state.entities || [];
       const next = JSON.stringify({entities, preferred: state.preferredEntity});
       if (next === signature) return;
@@ -78,7 +79,7 @@
     await request('/api/accesses', {method: 'POST', signal});
     signature = '';
     loadedEntity = '';
-    await refresh();
+    await refreshSource();
     if (previousEntity && entity.value === previousEntity && previousSystem) {
       const previousOption = [...system.options].find(option => option.textContent === previousSystem);
       if (previousOption) system.value = previousOption.value;
@@ -86,6 +87,6 @@
     toast('A lista de entidades e sistemas foi atualizada.');
   });
 
-  refresh();
-  setInterval(refresh, 1000);
+  refreshSource();
+  setInterval(refreshSource, 1000);
 })();

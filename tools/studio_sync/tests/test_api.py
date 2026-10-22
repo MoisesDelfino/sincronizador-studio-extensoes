@@ -5,7 +5,7 @@ import unittest
 import tempfile
 from pathlib import Path
 
-from tools.studio_sync.api import StudioApi
+from tools.studio_sync.api import SessionExpiredError, StudioApi
 from tools.studio_sync.cache import ArtifactCache
 from tools.studio_sync.models import AccessOption, ArtifactKind, SessionCredentials
 
@@ -45,6 +45,32 @@ class FakeSession:
 
 
 class StudioApiTests(unittest.TestCase):
+    def test_deve_classificar_sessao_expirada_quando_get_retornar_401(self) -> None:
+        # Dado que uma consulta autenticada recebe 401 da API remota
+        response = FakeResponse({"error": "unauthorized"})
+        response.status_code = 401
+        api = StudioApi(
+            SessionCredentials("token", "context"),
+            session=FakeSession([response]),  # type: ignore[arg-type]
+        )
+
+        # Quando o cliente processa a resposta, então sinaliza expiração da sessão
+        with self.assertRaisesRegex(SessionExpiredError, "Sessão expirada"):
+            api._get("https://example.invalid/protected")
+
+    def test_deve_classificar_sessao_expirada_quando_post_retornar_403(self) -> None:
+        # Dado que uma operação autenticada recebe 403 da API remota
+        response = FakeResponse({"error": "forbidden"})
+        response.status_code = 403
+        api = StudioApi(
+            SessionCredentials("token", "context"),
+            session=FakeSession([response]),  # type: ignore[arg-type]
+        )
+
+        # Quando o cliente processa a resposta, então sinaliza expiração da sessão
+        with self.assertRaisesRegex(SessionExpiredError, "acesso não autorizado"):
+            api._post("https://example.invalid/protected")
+
     def test_contract_fixture_fetches_every_supported_artifact_kind(self) -> None:
         fixture_path = Path(__file__).with_name("fixtures") / "studio_artifact.json"
         fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
