@@ -12,13 +12,17 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
-from .api import StudioApi
+from .api import SessionExpiredError, StudioApi
 from .auth import authenticate_interactively
 from .backup import BackupStore
 from .models import AccessOption, ArtifactKind, ChangeKind, SyncChange
 from .sync import Synchronizer
 
 STATIC = Path(__file__).with_name("static")
+
+
+class StaleOperationError(RuntimeError):
+    pass
 
 
 class AppState:
@@ -60,6 +64,24 @@ class AppState:
     def ensure_not_cancelled(self) -> None:
         if self.cancelled():
             raise RuntimeError("Operação cancelada pelo usuário.")
+
+    def expire_session(self, status: str, source: object | None = None) -> bool:
+        with self.lock:
+            if source is not None and self.api is not None and source is not self.api:
+                return False
+            self.status = status
+            self.busy = False
+            self.user = ""
+            self.api = None
+            self.preferred_entity_id = ""
+            self.accesses = []
+            self.summaries = []
+            self.changes = []
+            self.duplicate_names = set()
+            self.root = None
+            self.last_backup_id = ""
+            self.cancel_event.set()
+            return True
 
     def public(self) -> dict[str, Any]:
         with self.lock:
@@ -192,6 +214,14 @@ class Handler(BaseHTTPRequestHandler):
                 threading.Thread(target=self.server.shutdown, daemon=True).start()
             else:
                 self.send_error(HTTPStatus.NOT_FOUND)
+        except StaleOperationError:
+            self.send_json(STATE.public())
+        except SessionExpiredError as exc:
+            source = None if self.path == "/api/authenticate" else exc.source
+            if STATE.expire_session(str(exc), source):
+                self.send_json({"error": str(exc)}, 400)
+            else:
+                self.send_json(STATE.public())
         except Exception as exc:
             STATE.update(f"Erro: {exc}", False)
             self.send_json({"error": str(exc)}, 400)
@@ -288,14 +318,19 @@ class Handler(BaseHTTPRequestHandler):
     def load_systems(self) -> None:
         body = self.read_json()
         entity_id = str(body.get("entity", ""))
-        if STATE.api is None:
+        api = STATE.api
+        if api is None:
             raise ValueError("Faça a autenticação primeiro.")
         base = next((item for item in STATE.accesses if item.entity_id == entity_id), None)
         if base is None:
             raise ValueError("Selecione uma entidade válida.")
         STATE.update("Consultando os sistemas permitidos para a entidade...", True)
-        systems = STATE.api.list_permitted_systems(base)
+        systems = api.list_permitted_systems(base)
         with STATE.lock:
+            if STATE.api is None:
+                raise SessionExpiredError("Sessão expirada ou acesso não autorizado.")
+            if STATE.api is not api:
+                raise StaleOperationError()
             existing = {
                 item.system_id: item
                 for item in STATE.accesses

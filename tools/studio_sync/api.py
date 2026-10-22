@@ -27,6 +27,12 @@ class StudioApiError(RuntimeError):
     pass
 
 
+class SessionExpiredError(StudioApiError):
+    def __init__(self, message: str, source: object | None = None) -> None:
+        super().__init__(message)
+        self.source = source
+
+
 def _walk_dicts(value: Any) -> Iterable[dict[str, Any]]:
     if isinstance(value, dict):
         yield value
@@ -181,7 +187,7 @@ class StudioApi:
             try:
                 response = self.session.get(url, timeout=request_timeout, **kwargs)
                 if response.status_code in (401, 403):
-                    raise StudioApiError("Sessão expirada ou acesso não autorizado.")
+                    raise SessionExpiredError("Sessão expirada ou acesso não autorizado.", self)
                 if response.status_code == 429 or response.status_code >= 500:
                     if attempt < attempts - 1:
                         time.sleep(0.5 * (2**attempt))
@@ -208,7 +214,7 @@ class StudioApi:
         try:
             response = self.session.post(url, timeout=self.timeout, **kwargs)
             if response.status_code in (401, 403):
-                raise StudioApiError("Sessão expirada ou acesso não autorizado.")
+                raise SessionExpiredError("Sessão expirada ou acesso não autorizado.", self)
             response.raise_for_status()
             return response
         except StudioApiError:
