@@ -186,6 +186,102 @@ class SynchronizerTests(unittest.TestCase):
             self.assertEqual(ChangeKind.CONFLICT, changes[0].status)
             self.assertIn("mais de um local", changes[0].message)
 
+    def test_reuses_and_renames_equivalent_artifact_directory(self) -> None:
+        artifact = RemoteArtifact(ArtifactKind.COMPONENT, "Existente", "1", "10", "novo")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            variant = root / "componentes"
+            variant.mkdir()
+            (variant / "Existente.groovy").write_text("antigo", encoding="utf-8")
+            synchronizer = Synchronizer(
+                FakeApi({ArtifactKind.COMPONENT: [artifact]}),
+                root,
+                BackupStore(root / ".test-backups"),  # type: ignore[arg-type]
+            )
+
+            changes = synchronizer.analyze([ArtifactKind.COMPONENT])
+
+            self.assertEqual(ChangeKind.UPDATE, changes[0].status)
+            self.assertEqual(root / "Componentes" / "Existente.groovy", changes[0].path)
+            synchronizer.apply(changes)
+            self.assertFalse(variant.exists())
+            self.assertEqual(
+                "novo",
+                (root / "Componentes" / "Existente.groovy").read_text(encoding="utf-8"),
+            )
+
+    def test_consolidates_accented_and_canonical_directories_without_data_loss(self) -> None:
+        artifact = RemoteArtifact(ArtifactKind.DYNAMIC_SOURCE, "Nova", "1", "10", "codigo")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            canonical = root / "FontesDinamicas"
+            variant = root / "Fontes Dinâmicas"
+            canonical.mkdir()
+            variant.mkdir()
+            (canonical / "Canonica.groovy").write_text("canonica", encoding="utf-8")
+            (variant / "Legada.groovy").write_text("legada", encoding="utf-8")
+            synchronizer = Synchronizer(
+                FakeApi({ArtifactKind.DYNAMIC_SOURCE: [artifact]}),
+                root,
+                BackupStore(root / ".test-backups"),  # type: ignore[arg-type]
+            )
+
+            changes = synchronizer.analyze([ArtifactKind.DYNAMIC_SOURCE])
+            synchronizer.apply(changes)
+
+            self.assertFalse(variant.exists())
+            self.assertEqual("canonica", (canonical / "Canonica.groovy").read_text(encoding="utf-8"))
+            self.assertEqual("legada", (canonical / "Legada.groovy").read_text(encoding="utf-8"))
+            self.assertEqual("codigo", (canonical / "Nova.groovy").read_text(encoding="utf-8"))
+
+    def test_refuses_to_merge_different_files_at_the_same_relative_path(self) -> None:
+        artifact = RemoteArtifact(ArtifactKind.CRITIQUE, "Nova", "1", "10", "codigo")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            canonical = root / "Criticas"
+            variant = root / "Críticas"
+            canonical.mkdir()
+            variant.mkdir()
+            (canonical / "Duplicada.groovy").write_text("a", encoding="utf-8")
+            (variant / "Duplicada.groovy").write_text("b", encoding="utf-8")
+            synchronizer = Synchronizer(
+                FakeApi({ArtifactKind.CRITIQUE: [artifact]}),
+                root,
+                BackupStore(root / ".test-backups"),  # type: ignore[arg-type]
+            )
+            changes = synchronizer.analyze([ArtifactKind.CRITIQUE])
+
+            with self.assertRaisesRegex(ValueError, "arquivos diferentes"):
+                synchronizer.apply(changes)
+
+            self.assertTrue(canonical.exists())
+            self.assertTrue(variant.exists())
+            self.assertFalse((canonical / "Nova.groovy").exists())
+
+    def test_refuses_conflicts_between_multiple_variants_before_renaming_any_folder(self) -> None:
+        artifact = RemoteArtifact(ArtifactKind.REPORT, "Novo", "1", "10", "jrxml")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first = root / "Relatórios"
+            second = root / "RELATORIOS"
+            first.mkdir()
+            second.mkdir()
+            (first / "Duplicado.jrxml").write_text("a", encoding="utf-8")
+            (second / "Duplicado.jrxml").write_text("b", encoding="utf-8")
+            synchronizer = Synchronizer(
+                FakeApi({ArtifactKind.REPORT: [artifact]}),
+                root,
+                BackupStore(root / ".test-backups"),  # type: ignore[arg-type]
+            )
+            changes = synchronizer.analyze([ArtifactKind.REPORT])
+
+            with self.assertRaisesRegex(ValueError, "arquivos diferentes"):
+                synchronizer.apply(changes)
+
+            self.assertTrue(first.exists())
+            self.assertTrue(second.exists())
+            self.assertFalse((root / "Relatorios").exists())
+
 
 if __name__ == "__main__":
     unittest.main()
