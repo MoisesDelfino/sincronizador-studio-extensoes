@@ -65,6 +65,18 @@ class LinuxIntegrationTests(unittest.TestCase):
 
 
 class RepositoryUpdateTests(unittest.TestCase):
+    @patch.object(iniciar.subprocess, "call")
+    @patch.object(iniciar, "atualizar_repositorio")
+    @patch.object(iniciar.webbrowser, "open")
+    @patch.object(iniciar, "running_instance_url", return_value="http://127.0.0.1:43123")
+    def test_reopens_running_instance_before_updating_repository(
+        self, _running: Mock, open_browser: Mock, update: Mock, call: Mock
+    ) -> None:
+        self.assertEqual(0, iniciar.main())
+        open_browser.assert_called_once_with("http://127.0.0.1:43123")
+        update.assert_not_called()
+        call.assert_not_called()
+
     @patch.object(iniciar.shutil, "which", return_value="/usr/bin/git")
     @patch.object(iniciar.subprocess, "run")
     def test_updates_with_fast_forward_only_before_starting(self, run: Mock, _which: Mock) -> None:

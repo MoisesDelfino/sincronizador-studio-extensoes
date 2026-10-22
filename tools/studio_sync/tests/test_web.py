@@ -1,14 +1,78 @@
 from __future__ import annotations
 
 import unittest
+from tempfile import TemporaryDirectory
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 from tools.studio_sync.api import SessionExpiredError
+from tools.studio_sync.instance import running_instance_url
 from tools.studio_sync.models import AccessOption
-from tools.studio_sync.web import AppState, Handler, STATIC, StaleOperationError
+from tools.studio_sync.web import (
+    AppState,
+    Handler,
+    STATIC,
+    StaleOperationError,
+    run,
+)
 
 
 class WebSmokeTests(unittest.TestCase):
+    def test_deve_reconhecer_servidor_studio_registrado(self) -> None:
+        # Dado que o registro aponta para uma instância válida do Studio Sync
+        with TemporaryDirectory() as directory:
+            runtime = Path(directory) / "server.json"
+            runtime.write_text('{"port": 43123}', encoding="utf-8")
+            response = Mock(
+                status=200,
+                headers={"Server": "StudioSync/0.2 Python/3"},
+            )
+            response.read.return_value = b'{"authenticated": true}'
+            context = Mock()
+            context.__enter__ = Mock(return_value=response)
+            context.__exit__ = Mock(return_value=False)
+
+            # Quando o registro é verificado, então a URL existente é reutilizada
+            with (
+                patch("tools.studio_sync.instance.runtime_file", return_value=runtime),
+                patch("tools.studio_sync.instance.urllib.request.urlopen", return_value=context),
+            ):
+                self.assertEqual("http://127.0.0.1:43123", running_instance_url())
+
+    def test_deve_reabrir_instancia_existente_sem_perder_sessao(self) -> None:
+        # Dado que a aplicação continua executando após a guia ser fechada
+        url = "http://127.0.0.1:43123"
+
+        # Quando o usuário abre a ferramenta novamente, então a mesma instância é reaberta
+        with (
+            patch("tools.studio_sync.web.running_instance_url", return_value=url),
+            patch("tools.studio_sync.web.webbrowser.open") as open_browser,
+            patch("tools.studio_sync.web.ThreadingHTTPServer") as server,
+        ):
+            run()
+
+        open_browser.assert_called_once_with(url)
+        server.assert_not_called()
+
+    def test_deve_remover_registro_da_instancia_quando_servidor_encerrar(self) -> None:
+        # Dado que não existe instância anterior e um novo servidor será iniciado
+        with TemporaryDirectory() as directory:
+            runtime = Path(directory) / "server.json"
+            server = Mock(server_port=43124)
+
+            # Quando o servidor encerra, então o registro não permanece apontando para processo morto
+            with (
+                patch("tools.studio_sync.web.running_instance_url", return_value=""),
+                patch("tools.studio_sync.instance.runtime_file", return_value=runtime),
+                patch("tools.studio_sync.web.ThreadingHTTPServer", return_value=server),
+                patch("tools.studio_sync.web.threading.Timer"),
+            ):
+                run()
+
+            server.serve_forever.assert_called_once()
+            server.server_close.assert_called_once()
+            self.assertFalse(runtime.exists())
+
     def test_deve_deslogar_quando_api_informar_sessao_expirada(self) -> None:
         # Dado que existe uma sessão com dados transitórios carregados
         state = AppState()

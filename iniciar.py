@@ -7,7 +7,10 @@ import shutil
 import subprocess
 import sys
 import venv
+import webbrowser
 from pathlib import Path
+
+from tools.studio_sync.instance import running_instance_url
 
 RAIZ = Path(__file__).resolve().parent
 VENV = RAIZ / ".venv"
@@ -138,6 +141,10 @@ def main() -> int:
     if sys.version_info < (3, 10):
         print("É necessário Python 3.10 ou mais recente.")
         return 1
+    existing = running_instance_url()
+    if existing:
+        webbrowser.open(existing)
+        return 0
     env = dict(os.environ, PLAYWRIGHT_BROWSERS_PATH=str(NAVEGADORES))
     atualizar_repositorio(env)
     instalar_integracao_linux()
