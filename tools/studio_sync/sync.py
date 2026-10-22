@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 import tempfile
+import unicodedata
 from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable
 from pathlib import Path
@@ -39,6 +41,113 @@ class Synchronizer:
         if self.root != target and self.root not in target.parents:
             raise ValueError(f"O título aponta para fora da pasta escolhida: {artifact.title!r}")
         return target
+
+    @staticmethod
+    def _directory_key(name: str) -> str:
+        decomposed = unicodedata.normalize("NFKD", name)
+        without_accents = "".join(
+            character for character in decomposed
+            if not unicodedata.combining(character)
+        )
+        return "".join(character for character in without_accents.casefold() if character.isalnum())
+
+    def _canonical_artifact_path(self, path: Path) -> Path:
+        """Projeta uma pasta equivalente para o nome canônico sem alterar o disco."""
+        try:
+            relative = path.resolve().relative_to(self.root)
+        except ValueError:
+            return path
+        if len(relative.parts) < 2:
+            return path
+        first = relative.parts[0]
+        for kind in ArtifactKind:
+            canonical = kind.directory
+            if canonical and self._directory_key(first) == self._directory_key(canonical):
+                return self.root / canonical / Path(*relative.parts[1:])
+        return path
+
+    def _artifact_directory_plan(self, kinds: Iterable[ArtifactKind]) -> list[tuple[Path, Path]]:
+        if not self.root.is_dir():
+            return []
+        children = [child for child in self.root.iterdir() if child.is_dir()]
+        plan: list[tuple[Path, Path]] = []
+        for kind in set(kinds):
+            canonical_name = kind.directory
+            if not canonical_name:
+                continue
+            key = self._directory_key(canonical_name)
+            canonical = self.root / canonical_name
+            for child in children:
+                if child.name != canonical_name and self._directory_key(child.name) == key:
+                    if child.is_symlink():
+                        raise ValueError(f"A pasta equivalente não pode ser um link simbólico: {child}")
+                    plan.append((child, canonical))
+        return plan
+
+    @staticmethod
+    def _merge_conflicts(source: Path, target: Path) -> list[Path]:
+        conflicts: list[Path] = []
+        if not target.exists():
+            return conflicts
+        for item in source.rglob("*"):
+            relative = item.relative_to(source)
+            destination = target / relative
+            if item.is_symlink() or destination.is_symlink():
+                conflicts.append(relative)
+                continue
+            if not destination.exists():
+                continue
+            if item.is_dir() and destination.is_dir():
+                continue
+            if item.is_file() and destination.is_file() and item.read_bytes() == destination.read_bytes():
+                continue
+            conflicts.append(relative)
+        return conflicts
+
+    @staticmethod
+    def _merge_directory(source: Path, target: Path) -> None:
+        if not target.exists():
+            source.rename(target)
+            return
+        for item in sorted(source.rglob("*"), key=lambda path: len(path.parts)):
+            relative = item.relative_to(source)
+            destination = target / relative
+            if item.is_dir():
+                destination.mkdir(parents=True, exist_ok=True)
+            elif destination.exists():
+                # A preflight já confirmou que os conteúdos são idênticos.
+                item.unlink()
+            else:
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(item), str(destination))
+        for directory in sorted(
+            (path for path in source.rglob("*") if path.is_dir()),
+            key=lambda path: len(path.parts),
+            reverse=True,
+        ):
+            directory.rmdir()
+        source.rmdir()
+
+    def _normalize_artifact_directories(self, kinds: Iterable[ArtifactKind]) -> None:
+        plan = self._artifact_directory_plan(kinds)
+        conflicts: list[str] = []
+        for source, target in plan:
+            for relative in self._merge_conflicts(source, target):
+                conflicts.append(f"{source.name}/{relative.as_posix()}")
+        for index, (source, target) in enumerate(plan):
+            for other, other_target in plan[index + 1:]:
+                if other_target == target:
+                    for relative in self._merge_conflicts(source, other):
+                        conflicts.append(f"{source.name}/{relative.as_posix()}")
+        if conflicts:
+            names = ", ".join(conflicts[:5])
+            suffix = "" if len(conflicts) <= 5 else f" e mais {len(conflicts) - 5}"
+            raise ValueError(
+                "Não foi possível consolidar pastas equivalentes porque existem arquivos "
+                f"diferentes no mesmo caminho: {names}{suffix}"
+            )
+        for source, target in plan:
+            self._merge_directory(source, target)
 
     def _local_scripts(self) -> tuple[dict[str, list[Path]], list[str]]:
         """Indexa todos os .groovy abaixo da raiz, independentemente da pasta."""
@@ -151,22 +260,29 @@ class Synchronizer:
                 continue
             matches = local_scripts.get(filename_key, [])
             if len(matches) > 1:
-                locations = ", ".join(str(path.relative_to(self.root)) for path in matches)
-                changes.append(
-                    SyncChange(
-                        ChangeKind.CONFLICT,
-                        artifact,
-                        None,
-                        f"O arquivo existe em mais de um local: {locations}",
-                    )
+                projected = {self._canonical_artifact_path(path) for path in matches}
+                identical = all(
+                    path.is_file() and path.read_bytes() == matches[0].read_bytes()
+                    for path in matches[1:]
                 )
-                continue
-            target = matches[0] if matches else default_target
-            if not target.exists():
+                if len(projected) != 1 or not identical:
+                    locations = ", ".join(str(path.relative_to(self.root)) for path in matches)
+                    changes.append(
+                        SyncChange(
+                            ChangeKind.CONFLICT,
+                            artifact,
+                            None,
+                            f"O arquivo existe em mais de um local: {locations}",
+                        )
+                    )
+                    continue
+            existing = matches[0] if matches else default_target
+            target = self._canonical_artifact_path(existing)
+            if not existing.exists():
                 changes.append(SyncChange(ChangeKind.CREATE, artifact, target))
                 continue
             try:
-                local = target.read_text(encoding="utf-8")
+                local = existing.read_text(encoding="utf-8")
             except (OSError, UnicodeError) as exc:
                 changes.append(SyncChange(ChangeKind.ERROR, artifact, target, str(exc)))
                 continue
@@ -179,13 +295,15 @@ class Synchronizer:
         changes: Iterable[SyncChange],
         cancelled: Callable[[], bool] | None = None,
     ) -> int:
+        selected = list(changes)
         actionable = [
-            change for change in changes
+            change for change in selected
             if change.status in (ChangeKind.CREATE, ChangeKind.UPDATE)
             and change.path is not None and change.artifact is not None
         ]
         if not actionable:
             return 0
+        self._normalize_artifact_directories(change.artifact.kind for change in actionable)
         backup_id, manifest = self.backups.prepare(self.root, actionable)
         written = 0
         try:
