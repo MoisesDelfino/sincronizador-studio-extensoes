@@ -15,6 +15,7 @@ from typing import Any
 from .api import SessionExpiredError, StudioApi
 from .auth import authenticate_interactively
 from .backup import BackupStore
+from .instance import clear_running_instance, register_running_instance, running_instance_url
 from .models import AccessOption, ArtifactKind, ChangeKind, SyncChange
 from .sync import Synchronizer
 
@@ -507,11 +508,17 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def run() -> None:
+    existing = running_instance_url()
+    if existing:
+        webbrowser.open(existing)
+        return
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     url = f"http://127.0.0.1:{server.server_port}"
+    register_running_instance(server.server_port)
     threading.Timer(0.5, lambda: webbrowser.open(url)).start()
     try:
         server.serve_forever()
     finally:
+        clear_running_instance(server.server_port)
         server.server_close()
 
