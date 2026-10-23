@@ -87,7 +87,7 @@ O Studio Sync funciona somente enquanto estiver aberto.
 1. Conecte-se à rede Betha ou à VPN.
 2. Na primeira execução, inicie pelo terminal; nas seguintes, use o atalho disponível.
 3. Entre no Studio Extensões e conclua o MFA.
-4. Selecione a entidade e o sistema.
+4. Selecione a entidade e o sistema. Entidades nas quais sua conta possui acesso ao Orquestrador são identificadas pela tag **Orquestrador**.
 5. Escolha a pasta local e os tipos de artefato.
 6. Analise as diferenças.
 7. Selecione os arquivos desejados e confirme a sincronização.
@@ -108,15 +108,17 @@ Depois de sincronizar, é possível voltar e selecionar outra entidade, sistema 
 
 Se o arquivo já existir em uma subpasta, ele será atualizado no local existente. Arquivos locais que não existem no Studio não são removidos.
 
+Pastas equivalentes, como `Components` e `Componentes`, são reaproveitadas para evitar duplicidade. A renomeação ou consolidação aparece na prévia e na confirmação antes de ser aplicada. Se houver arquivos diferentes no mesmo caminho, a sincronização é bloqueada para evitar sobrescrita.
+
 ## Desfazer uma sincronização
 
-Use **Desfazer última sincronização** para restaurar os arquivos atualizados e remover os arquivos criados pela última operação.
+Use **Desfazer última sincronização** para restaurar os arquivos atualizados, remover os arquivos criados e recuperar os nomes e a organização anterior das pastas movimentadas.
 
-Por segurança, a restauração é bloqueada quando algum desses arquivos foi editado depois da sincronização.
+Por segurança, a restauração é bloqueada quando algum arquivo ou pasta envolvido foi editado depois da sincronização.
 
 ## Problemas comuns
 
-- **Entidade ou sistema não aparece:** solicite o acesso pelo Betha Admin e entre novamente na ferramenta.
+- **Entidade, sistema ou tag do Orquestrador não aparece:** use **Atualizar acessos**; se continuar ausente, solicite o acesso pelo Betha Admin e entre novamente na ferramenta.
 - **Falha ao autenticar ou consultar:** confira a conexão com a rede corporativa ou VPN.
 - **Verificação de versão indisponível:** a ferramenta abrirá a versão local; confira a internet, o Git e se o repositório possui alterações locais.
 - **Primeira abertura não conclui:** confirme que o Python 3.10+ está instalado e tente novamente com acesso à internet.

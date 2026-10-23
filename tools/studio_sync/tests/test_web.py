@@ -18,6 +18,29 @@ from tools.studio_sync.web import (
 
 
 class WebSmokeTests(unittest.TestCase):
+    def test_deve_marcar_entidades_com_acesso_ao_orquestrador(self) -> None:
+        state = AppState()
+        state.accesses = [
+            AccessOption("Com Orquestrador", "1", "10", "103", "Sistema 103"),
+            AccessOption("Sem Orquestrador", "2", "20", "78", "Contratos"),
+            AccessOption("Nome reconhecido", "3", "30", "", "Orquestrador"),
+        ]
+
+        entities = {item["id"]: item for item in state.public()["entities"]}
+
+        self.assertTrue(entities["1"]["orchestrator"])
+        self.assertFalse(entities["2"]["orchestrator"])
+        self.assertTrue(entities["3"]["orchestrator"])
+
+    def test_deve_preservar_tag_ao_substituir_sistemas_da_entidade(self) -> None:
+        state = AppState()
+        state.orchestrator_entities = {"1"}
+        state.accesses = [AccessOption("Entidade", "1", "10", "200", "Almoxarifado")]
+
+        entity = state.public()["entities"][0]
+
+        self.assertTrue(entity["orchestrator"])
+
     def test_deve_reconhecer_servidor_studio_registrado(self) -> None:
         # Dado que o registro aponta para uma instância válida do Studio Sync
         with TemporaryDirectory() as directory:
@@ -217,6 +240,9 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn("Moises Delfino - Vertical Contratos", html)
         self.assertNotIn('id="close">Encerrar</button>', html)
         self.assertIn('id="refresh-accesses"', html)
+        self.assertIn('id="entity-trigger"', html)
+        self.assertIn('id="entity-menu"', html)
+        self.assertIn('role="listbox"', html)
         self.assertEqual(html.count('data-step="'), 4)
         self.assertIn('data-panel="1"', html)
         self.assertIn('data-panel="4"', html)
@@ -228,6 +254,10 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn("kind === 'JOB' ? 'SCRIPT'", javascript)
         self.assertIn("Versão atual", javascript)
         self.assertIn("localStorage.setItem('studio-sync-theme'", javascript)
+        source_javascript = (STATIC / "source.js").read_text(encoding="utf-8")
+        self.assertIn("entity-access-tag", source_javascript)
+        self.assertIn("aria-selected", source_javascript)
+        self.assertIn("event.key === 'Escape'", source_javascript)
         self.assertIn("function setTheme(theme)", javascript)
         self.assertIn("studio-sync-light.png", javascript)
         self.assertIn("function closeFolderDialog()", javascript)

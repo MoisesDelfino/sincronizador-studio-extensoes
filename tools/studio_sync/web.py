@@ -20,6 +20,14 @@ from .models import AccessOption, ArtifactKind, ChangeKind, SyncChange
 from .sync import Synchronizer
 
 STATIC = Path(__file__).with_name("static")
+ORCHESTRATOR_SYSTEM_IDS = {"103"}
+
+
+def _is_orchestrator(access: AccessOption) -> bool:
+    return (
+        access.system_id in ORCHESTRATOR_SYSTEM_IDS
+        or access.system_name.strip().casefold() == "orquestrador"
+    )
 
 
 class StaleOperationError(RuntimeError):
@@ -35,6 +43,7 @@ class AppState:
         self.api: StudioApi | None = None
         self.preferred_entity_id = ""
         self.accesses: list[AccessOption] = []
+        self.orchestrator_entities: set[str] = set()
         self.summaries: list[tuple[ArtifactKind, dict[str, Any]]] = []
         self.changes: list[SyncChange | None] = []
         self.duplicate_names: set[str] = set()
@@ -76,6 +85,7 @@ class AppState:
             self.api = None
             self.preferred_entity_id = ""
             self.accesses = []
+            self.orchestrator_entities = set()
             self.summaries = []
             self.changes = []
             self.duplicate_names = set()
@@ -95,8 +105,15 @@ class AppState:
             for index, access in enumerate(self.accesses):
                 entity = entities.setdefault(
                     access.entity_id,
-                    {"id": access.entity_id, "label": access.label, "systems": []},
+                    {
+                        "id": access.entity_id,
+                        "label": access.label,
+                        "systems": [],
+                        "orchestrator": access.entity_id in self.orchestrator_entities,
+                    },
                 )
+                if _is_orchestrator(access):
+                    entity["orchestrator"] = True
                 system_key = access.system_id or access.system_name
                 if not access.system_id and access.system_name == "Sistema não identificado":
                     continue
@@ -250,6 +267,9 @@ class Handler(BaseHTTPRequestHandler):
         STATE.last_backup_id = ""
         STATE.preferred_entity_id = credentials.selected_entity_id
         STATE.accesses = accesses
+        STATE.orchestrator_entities = {
+            item.entity_id for item in accesses if _is_orchestrator(item)
+        }
         STATE.user = str(user.get("name") or user.get("nome") or user.get("email") or "Autenticado")
         entity_count = len({item.entity_id for item in accesses})
         STATE.update(f"Sessão conectada. {entity_count} entidade(s) disponível(is).", False)
@@ -284,6 +304,9 @@ class Handler(BaseHTTPRequestHandler):
                 for item in refreshed
             ]
             STATE.accesses = accesses
+            STATE.orchestrator_entities = {
+                item.entity_id for item in accesses if _is_orchestrator(item)
+            }
             STATE.summaries = []
             STATE.changes = []
             STATE.duplicate_names = set()
