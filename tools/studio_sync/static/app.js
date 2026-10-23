@@ -523,10 +523,12 @@ $('#analyze').onclick = () => action(async signal => {
   });
   await loadChanges(true);
   const firstPage = currentPageSourceChanges();
-  await request('/api/page', {
-    method: 'POST', signal, body: JSON.stringify({changes: firstPage.map(change => change.index)})
-  });
-  await loadChanges(false, false);
+  if (firstPage.length) {
+    await request('/api/page', {
+      method: 'POST', signal, body: JSON.stringify({changes: firstPage.map(change => change.index)})
+    });
+    await loadChanges(false, false);
+  }
   analysisReady = true;
   currentStep = 4;
   updateWizard();
