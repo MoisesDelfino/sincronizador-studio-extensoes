@@ -170,6 +170,7 @@ class Handler(BaseHTTPRequestHandler):
                     "title": change.artifact.title if change and change.artifact else title,
                     "path": str(change.path) if change and change.path else "",
                     "message": change.message if change else "O conteúdo será carregado ao abrir esta página.",
+                    "directoryChanges": list(change.directory_changes) if change else [],
                     "actionable": bool(change and change.status in (ChangeKind.CREATE, ChangeKind.UPDATE)),
                     "loaded": change is not None,
                 })
@@ -477,7 +478,11 @@ class Handler(BaseHTTPRequestHandler):
         }
         STATE.update("Gravando arquivos com segurança...", True)
         synchronizer = Synchronizer(STATE.api, STATE.root)
-        count = synchronizer.apply(selected, cancelled=STATE.cancelled)
+        count = synchronizer.apply(
+            selected,
+            cancelled=STATE.cancelled,
+            require_directory_preview=True,
+        )
         STATE.last_backup_id = synchronizer.last_backup_id
         for index in applied_indexes:
             change = STATE.changes[index]

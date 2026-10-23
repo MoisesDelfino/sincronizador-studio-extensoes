@@ -173,11 +173,14 @@ function confirmAction({eyebrow, title, description, acceptLabel, icon = '✓', 
   });
 }
 
-function confirmSynchronization(count) {
+function confirmSynchronization(count, directoryChanges = []) {
+  const folderNotice = directoryChanges.length
+    ? ` Também serão feitas estas alterações de pastas: ${directoryChanges.join(' ')}`
+    : '';
   return confirmAction({
     eyebrow: 'CONFIRMAR SINCRONIZAÇÃO',
     title: 'Sincronizar arquivos selecionados?',
-    description: 'Os arquivos locais serão criados ou atualizados com o conteúdo do Studio Extensões.',
+    description: `Os arquivos locais serão criados ou atualizados com o conteúdo do Studio Extensões.${folderNotice}`,
     acceptLabel: 'Sincronizar agora →',
     count
   });
@@ -257,7 +260,8 @@ function renderChanges() {
   if (changes.length && !searched.length) emptyMessage = 'Nenhum script corresponde à pesquisa.';
   else if (pageItems.length && !rows.length) emptyMessage = 'Nenhum item desta página corresponde às situações selecionadas.';
   $('#rows').innerHTML = rows.length ? rows.map(change => {
-    const detail = change.message || change.path || '';
+    const folderDetail = (change.directoryChanges || []).join(' ');
+    const detail = [change.message, folderDetail, change.path].filter(Boolean).join(' • ');
     const displayedKind = kindLabel(change.kind);
     const problem = change.status === 'CONFLITO' || change.status === 'ERRO';
     const checkbox = change.actionable
@@ -526,7 +530,12 @@ $('#analyze').onclick = () => action(async signal => {
 
 $('#sync').onclick = async () => {
   if (!selectedChanges.size) return toast('Selecione ao menos um script.');
-  if (!await confirmSynchronization(selectedChanges.size)) return;
+  const directoryChanges = [...new Set(
+    changes
+      .filter(change => selectedChanges.has(change.index))
+      .flatMap(change => change.directoryChanges || [])
+  )];
+  if (!await confirmSynchronization(selectedChanges.size, directoryChanges)) return;
   await action(async signal => {
     const data = await request('/api/apply', {
       method: 'POST', signal, body: JSON.stringify({changes: [...selectedChanges]})
@@ -541,7 +550,7 @@ $('#undo').onclick = async () => {
   if (!await confirmAction({
     eyebrow: 'CONFIRMAR RESTAURAÇÃO',
     title: 'Desfazer a última sincronização?',
-    description: 'Os arquivos alterados na última sincronização serão substituídos pelas versões anteriores.',
+    description: 'Os arquivos e nomes de pastas alterados na última sincronização serão restaurados para o estado anterior.',
     acceptLabel: 'Desfazer sincronização',
     icon: '↶'
   })) return;
