@@ -206,6 +206,41 @@ class StudioApiTests(unittest.TestCase):
         self.assertEqual(1, len(session.calls))
         self.assertEqual(10, session.calls[0][1]["timeout"])
 
+    def test_resolves_only_missing_entity_names_after_quick_refresh(self) -> None:
+        session = FakeSession(
+            [FakeResponse([{"id": 7155, "name": "Entidade identificada"}])]
+        )
+        api = StudioApi(SessionCredentials("token", "context"), session=session)  # type: ignore[arg-type]
+        accesses = [
+            AccessOption("Entidade conhecida", "373", "10"),
+            AccessOption("Entidade 7155", "7155", "20"),
+        ]
+
+        resolved = api.resolve_entity_names(accesses)
+
+        self.assertEqual(
+            ["Entidade conhecida", "Entidade identificada"],
+            [option.label for option in resolved],
+        )
+        self.assertEqual([("id", "7155")], session.calls[0][1]["params"])
+
+    def test_reads_entity_name_from_nested_access_payload(self) -> None:
+        session = FakeSession(
+            [
+                FakeResponse(
+                    [{
+                        "values": {"entity": "7155", "database": "20"},
+                        "metadata": {"entityName": "Entidade aninhada"},
+                    }]
+                )
+            ]
+        )
+        api = StudioApi(SessionCredentials("token", "context"), session=session)  # type: ignore[arg-type]
+
+        option = api.list_accesses(quick=True)[0]
+
+        self.assertEqual("Entidade aninhada", option.label)
+
     def test_expands_system_list_for_one_entity(self) -> None:
         session = FakeSession(
             [

@@ -279,30 +279,36 @@ class Handler(BaseHTTPRequestHandler):
         STATE.begin_operation()
         if STATE.api is None:
             raise ValueError("Faça a autenticação primeiro.")
+        api = STATE.api
         STATE.update("Atualizando entidades e sistemas permitidos...", True)
-        refreshed = STATE.api.list_accesses(quick=True)
+        refreshed = api.list_accesses(quick=True)
         STATE.ensure_not_cancelled()
         with STATE.lock:
             previous = {
                 (item.database_id, item.entity_id, item.system_id): item
                 for item in STATE.accesses
             }
-            accesses = [
-                replace(
-                    item,
-                    label=(
-                        previous.get((item.database_id, item.entity_id, item.system_id), item).label
-                        if item.label == f"Entidade {item.entity_id}"
-                        else item.label
-                    ),
-                    system_name=(
-                        previous.get((item.database_id, item.entity_id, item.system_id), item).system_name
-                        if item.system_name.startswith("Sistema ")
-                        else item.system_name
-                    ),
-                )
-                for item in refreshed
-            ]
+        accesses = [
+            replace(
+                item,
+                label=(
+                    previous.get((item.database_id, item.entity_id, item.system_id), item).label
+                    if item.label == f"Entidade {item.entity_id}"
+                    else item.label
+                ),
+                system_name=(
+                    previous.get((item.database_id, item.entity_id, item.system_id), item).system_name
+                    if item.system_name.startswith("Sistema ")
+                    else item.system_name
+                ),
+            )
+            for item in refreshed
+        ]
+        accesses = api.resolve_entity_names(accesses)
+        STATE.ensure_not_cancelled()
+        with STATE.lock:
+            if STATE.api is not api:
+                raise StaleOperationError("A sessão mudou durante a atualização de acessos.")
             STATE.accesses = accesses
             STATE.orchestrator_entities = {
                 item.entity_id for item in accesses if _is_orchestrator(item)

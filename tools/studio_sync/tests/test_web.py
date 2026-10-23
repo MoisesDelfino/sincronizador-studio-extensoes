@@ -297,6 +297,7 @@ class WebSmokeTests(unittest.TestCase):
         state.api = Mock()
         updated = AccessOption("Entidade nova", "2", "20", "56", "Contratos")
         state.api.list_accesses.return_value = [updated]
+        state.api.resolve_entity_names.return_value = [updated]
         state.summaries = [Mock()]
         state.changes = [Mock()]
         state.duplicate_names = {"duplicado"}
@@ -312,6 +313,7 @@ class WebSmokeTests(unittest.TestCase):
         self.assertEqual(set(), state.duplicate_names)
         self.assertFalse(state.busy)
         state.api.list_accesses.assert_called_once_with(quick=True)
+        state.api.resolve_entity_names.assert_called_once_with([updated])
         handler.send_json.assert_called_once()
 
 
