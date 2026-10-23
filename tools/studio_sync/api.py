@@ -319,7 +319,7 @@ class StudioApi:
             # O interceptor oficial UserAccessContext envia licenseId no
             # cabeçalho User-Access para a combinação entidade+sistema.
             user_access = _first(item, "licenseId", "userAccess", "user_access") or ""
-            entity_name = entity_name or _first(item, "entityName", "nomeEntidade")
+            entity_name = entity_name or _nested_first(item, "entityName", "nomeEntidade")
             system_name = system_name or _first(
                 item, "systemName", "nomeSistema", "sourceSystemName", "nomeSistemaOrigem"
             )
@@ -329,14 +329,20 @@ class StudioApi:
                 resolved_id = candidate_id or str(system_id or "")
                 resolved_name = candidate_name or str(system_name or "Sistema não identificado")
                 key = (str(database_id), str(entity_id), resolved_id or resolved_name)
+                existing = options.get(key)
+                if existing is not None:
+                    if label == f"Entidade {entity_id}":
+                        label = existing.label
+                    if resolved_name.startswith("Sistema ") or resolved_name == "Sistema não identificado":
+                        resolved_name = existing.system_name
                 options[key] = AccessOption(
                     label=label,
                     entity_id=str(entity_id),
                     database_id=str(database_id),
                     system_id=resolved_id,
                     system_name=resolved_name,
-                    access_id=str(access_id),
-                    user_access=str(user_access),
+                    access_id=str(access_id or (existing.access_id if existing else "")),
+                    user_access=str(user_access or (existing.user_access if existing else "")),
                 )
         if not options:
             raise StudioApiError(
@@ -363,6 +369,22 @@ class StudioApi:
             for option in options.values()
         ]
         return sorted(enriched, key=lambda option: option.label.casefold())
+
+    def resolve_entity_names(self, accesses: Iterable[AccessOption]) -> list[AccessOption]:
+        """Resolve apenas os rótulos técnicos ainda sem descrição humana."""
+        options = list(accesses)
+        names = self._resource_names(
+            "entities",
+            [
+                option.entity_id
+                for option in options
+                if option.label == f"Entidade {option.entity_id}"
+            ],
+        )
+        return [
+            replace(option, label=names.get(option.entity_id, option.label))
+            for option in options
+        ]
 
     def _resource_names(self, endpoint: str, ids: Iterable[str]) -> dict[str, str]:
         unique_ids = sorted(set(str(value) for value in ids if value))
