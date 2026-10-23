@@ -210,7 +210,7 @@ function selectedStatuses() {
 
 function filteredChanges() {
   const statuses = selectedStatuses();
-  return searchedChanges().filter(change => statuses.has(change.status));
+  return searchedChanges().filter(change => change.status === 'PENDENTE' || statuses.has(change.status));
 }
 
 function currentPageSourceChanges() {

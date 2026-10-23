@@ -255,6 +255,7 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn("Versão atual", javascript)
         self.assertIn("localStorage.setItem('studio-sync-theme'", javascript)
         self.assertIn("function filteredChanges()", javascript)
+        self.assertIn("change.status === 'PENDENTE' || statuses.has(change.status)", javascript)
         self.assertIn("Math.ceil(filtered.length / pageSize)", javascript)
         self.assertIn("currentPage = 1;", javascript)
         source_javascript = (STATIC / "source.js").read_text(encoding="utf-8")

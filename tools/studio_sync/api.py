@@ -61,6 +61,46 @@ def _nested_first(mapping: dict[str, Any], *names: str) -> Any:
     return None
 
 
+def _has_value(value: Any) -> bool:
+    if value is None or value is False:
+        return False
+    if isinstance(value, str):
+        return value.strip().casefold() not in {"", "false", "nao", "não", "null", "none"}
+    if isinstance(value, (list, dict)):
+        return bool(value)
+    return True
+
+
+def _is_flexibilized(summary: dict[str, Any]) -> bool:
+    """Identifica relatórios herdados de outra entidade na resposta de extensões."""
+    descriptor_names = {
+        "campo", "chave", "field", "key", "name", "nome", "property", "propriedade"
+    }
+    value_names = {"content", "conteudo", "valor", "value"}
+    for item in _walk_dicts(summary):
+        normalized = {
+            re.sub(r"[^a-z0-9]", "", str(key).casefold()): value
+            for key, value in item.items()
+        }
+        for key, value in normalized.items():
+            if "flexibiliz" in key and _has_value(value):
+                return True
+
+        descriptor = next(
+            (
+                value
+                for key, value in normalized.items()
+                if key in descriptor_names and isinstance(value, str) and "flexibiliz" in value.casefold()
+            ),
+            None,
+        )
+        if descriptor is not None:
+            values = [value for key, value in normalized.items() if key in value_names]
+            if not values or any(_has_value(value) for value in values):
+                return True
+    return False
+
+
 def _context_ids(value: Any) -> tuple[Any, Any]:
     """Extrai database/entity de contextos textuais simples ou codificados em Base64."""
     candidates: list[str] = []
@@ -517,7 +557,11 @@ class StudioApi:
             seen_offsets.add(offset)
             page = self._list_page(kind, offset)
             content = page["content"]
-            result.extend(item for item in content if isinstance(item, dict))
+            result.extend(
+                item
+                for item in content
+                if isinstance(item, dict) and not _is_flexibilized(item)
+            )
             if not page.get("hasNext"):
                 return result
             if not content:
