@@ -237,7 +237,7 @@ class WebSmokeTests(unittest.TestCase):
         self.assertIn('class="type-column"', html)
         self.assertIn('id="version-status"', html)
         self.assertIn('id="close">Sair</button>', html)
-        self.assertIn("Moises Delfino - Vertical Contratos", html)
+        self.assertNotIn("Moises Delfino - Vertical Contratos", html)
         self.assertNotIn('id="close">Encerrar</button>', html)
         self.assertIn('id="refresh-accesses"', html)
         self.assertIn('id="entity-trigger"', html)
