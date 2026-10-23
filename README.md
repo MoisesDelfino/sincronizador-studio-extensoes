@@ -122,4 +122,5 @@ Por segurança, a restauração é bloqueada quando algum arquivo ou pasta envol
 - **Falha ao autenticar ou consultar:** confira a conexão com a rede corporativa ou VPN.
 - **Verificação de versão indisponível:** a ferramenta abrirá a versão local; confira a internet, o Git e se o repositório possui alterações locais.
 - **Primeira abertura não conclui:** confirme que o Python 3.10+ está instalado e tente novamente com acesso à internet.
+- **Erro `SELF_SIGNED_CERT_IN_CHAIN` na primeira abertura:** atualize a ferramenta e execute novamente `python3 iniciar.py`. O inicializador reutiliza os certificados confiáveis instalados no sistema; se o erro continuar, solicite à TI a instalação do certificado raiz da rede corporativa no computador.
 - **Atalho não abre:** abra um terminal na pasta do projeto e execute `python3 iniciar.py` (`py iniciar.py` no Windows).

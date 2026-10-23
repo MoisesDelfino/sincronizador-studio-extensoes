@@ -18,9 +18,23 @@ NAVEGADORES = RAIZ / ".browsers"
 REQUISITOS = RAIZ / "tools" / "studio_sync" / "requirements.txt"
 MARCA = RAIZ / ".preparado"
 ICONE = RAIZ / "assets" / "studio-sync.png"
+CERTIFICADOS_SISTEMA = (
+    Path("/etc/ssl/certs/ca-certificates.crt"),
+    Path("/etc/pki/tls/certs/ca-bundle.crt"),
+    Path("/etc/ssl/ca-bundle.pem"),
+)
 
 
 LIBS = RAIZ / ".libs"
+
+
+def configurar_download_playwright(env: dict) -> None:
+    """Permite que o Node confie nas autoridades instaladas pelo sistema operacional."""
+    if not env.get("NODE_EXTRA_CA_CERTS"):
+        certificado = next((path for path in CERTIFICADOS_SISTEMA if path.is_file()), None)
+        if certificado:
+            env["NODE_EXTRA_CA_CERTS"] = str(certificado)
+    env.setdefault("PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT", "120000")
 
 
 def atualizar_repositorio(env: dict) -> bool:
@@ -126,6 +140,7 @@ def preparar(env: dict) -> None:
             print("  sudo apt install python3-venv python3-pip")
             raise SystemExit(1)
         env = dict(env, PYTHONPATH=str(LIBS))
+    configurar_download_playwright(env)
     subprocess.check_call([py, "-m", "playwright", "install", "chromium"], env=env)
     MARCA.parent.mkdir(exist_ok=True)
     MARCA.write_text("ok")

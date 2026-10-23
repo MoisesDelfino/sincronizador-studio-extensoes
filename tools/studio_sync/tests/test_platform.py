@@ -98,5 +98,29 @@ class RepositoryUpdateTests(unittest.TestCase):
             self.assertFalse(iniciar.atualizar_repositorio(env))
         self.assertEqual("unavailable", env["STUDIO_SYNC_VERSION_STATUS"])
 
+
+class PlaywrightDownloadTests(unittest.TestCase):
+    def test_uses_system_certificates_when_available(self) -> None:
+        env: dict[str, str] = {}
+        with TemporaryDirectory() as temporary:
+            certificates = Path(temporary) / "ca-certificates.crt"
+            certificates.write_text("certificate", encoding="utf-8")
+            with patch.object(iniciar, "CERTIFICADOS_SISTEMA", (certificates,)):
+                iniciar.configurar_download_playwright(env)
+
+        self.assertEqual(str(certificates), env["NODE_EXTRA_CA_CERTS"])
+        self.assertEqual("120000", env["PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT"])
+
+    def test_preserves_explicit_certificate_and_timeout_configuration(self) -> None:
+        env = {
+            "NODE_EXTRA_CA_CERTS": "/empresa/certificado.pem",
+            "PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT": "240000",
+        }
+
+        iniciar.configurar_download_playwright(env)
+
+        self.assertEqual("/empresa/certificado.pem", env["NODE_EXTRA_CA_CERTS"])
+        self.assertEqual("240000", env["PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT"])
+
 if __name__ == "__main__":
     unittest.main()
