@@ -86,7 +86,7 @@ function goToStep(step) {
   if (step > availableStep()) return;
   currentStep = step;
   updateWizard();
-  document.querySelector(`[data-panel="${step}"]`)?.querySelector('select, input, button:not(:disabled)')?.focus();
+  document.querySelector(`[data-panel="${step}"]`)?.querySelector('.entity-select-trigger:not(:disabled), select:not([hidden]), input, button:not(:disabled)')?.focus();
   window.scrollTo({top: 0, behavior: 'smooth'});
 }
 

@@ -50,7 +50,7 @@
         <button class="button secondary" id="refresh-accesses" type="button">↻ Atualizar acessos</button>
       </div>
       <div class="context-grid">
-        <div class="field"><label for="entity">Entidade</label><select id="entity" disabled><option>Autentique-se primeiro</option></select></div>
+        <div class="field"><label id="entity-label" for="entity-trigger">Entidade</label><div class="entity-select"><button class="entity-select-trigger" id="entity-trigger" type="button" aria-labelledby="entity-label entity-trigger-label" aria-haspopup="listbox" aria-expanded="false" disabled><span class="entity-trigger-label" id="entity-trigger-label">Autentique-se primeiro</span><span class="entity-access-tag" id="entity-trigger-tag" hidden>Orquestrador</span><span class="entity-chevron" aria-hidden="true">⌄</span></button><div class="entity-menu" id="entity-menu" role="listbox" aria-labelledby="entity-label" hidden></div><select id="entity" hidden disabled aria-hidden="true" tabindex="-1"><option>Autentique-se primeiro</option></select></div></div>
         <div class="field"><label for="access">Sistema</label><select id="access" disabled><option>Selecione uma entidade</option></select></div>
       </div>
       <div class="wizard-actions"><button class="button secondary wizard-back" data-target="1">← Voltar</button><button class="button primary" id="context-next" disabled>Continuar <span>→</span></button></div>

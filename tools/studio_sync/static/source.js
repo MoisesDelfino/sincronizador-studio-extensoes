@@ -1,9 +1,51 @@
 (() => {
   const entity = document.querySelector('#entity');
+  const entityTrigger = document.querySelector('#entity-trigger');
+  const entityTriggerLabel = document.querySelector('#entity-trigger-label');
+  const entityTriggerTag = document.querySelector('#entity-trigger-tag');
+  const entityMenu = document.querySelector('#entity-menu');
   const system = document.querySelector('#access');
   const refreshAccesses = document.querySelector('#refresh-accesses');
   let signature = '';
   let loadedEntity = '';
+
+  function closeEntityMenu() {
+    entityMenu.hidden = true;
+    entityTrigger.setAttribute('aria-expanded', 'false');
+  }
+
+  function updateEntityTrigger(entities) {
+    const selected = entities.find(item => item.id === entity.value);
+    entityTriggerLabel.textContent = selected?.label || 'Selecione uma entidade';
+    entityTriggerTag.hidden = !selected?.orchestrator;
+    entityTrigger.title = selected?.label || '';
+    entityMenu.querySelectorAll('[role="option"]').forEach(option => {
+      const active = option.dataset.id === entity.value;
+      option.classList.toggle('selected', active);
+      option.setAttribute('aria-selected', String(active));
+    });
+  }
+
+  function selectEntity(id, entities) {
+    if (!entities.some(item => item.id === id)) return;
+    entity.value = id;
+    updateEntityTrigger(entities);
+    fillSystems(entities);
+    closeEntityMenu();
+    loadSystems();
+  }
+
+  function renderEntityMenu(entities) {
+    entityMenu.innerHTML = entities.map(item => `
+      <button class="entity-option" type="button" role="option" data-id="${escapeText(item.id)}" aria-selected="false">
+        <span>${escapeText(item.label)}</span>
+        ${item.orchestrator ? '<span class="entity-access-tag">Orquestrador</span>' : ''}
+      </button>`).join('');
+    entityMenu.querySelectorAll('[role="option"]').forEach(option => {
+      option.onclick = () => selectEntity(option.dataset.id, entities);
+    });
+    updateEntityTrigger(entities);
+  }
 
   const escapeText = value => String(value ?? '').replace(
     /[&<>"']/g,
@@ -54,15 +96,21 @@
       signature = next;
       const previous = entity.value;
       entity.innerHTML = entities.length
-        ? entities.map(item => `<option value="${escapeText(item.id)}" title="${escapeText(item.label)}">${escapeText(item.label)}</option>`).join('')
+        ? entities.map(item => {
+          const tag = item.orchestrator ? '  [Orquestrador]' : '';
+          return `<option value="${escapeText(item.id)}" title="${escapeText(item.label + tag)}">${escapeText(item.label + tag)}</option>`;
+        }).join('')
         : '<option value="">Autentique-se primeiro</option>';
       entity.disabled = !entities.length;
+      entityTrigger.disabled = !entities.length;
       if (entities.some(item => item.id === previous)) entity.value = previous;
       else if (entities.some(item => item.id === state.preferredEntity)) entity.value = state.preferredEntity;
       entity.title = entity.selectedOptions[0]?.textContent || '';
+      renderEntityMenu(entities);
       fillSystems(entities);
       entity.onchange = () => {
         entity.title = entity.selectedOptions[0]?.textContent || '';
+        updateEntityTrigger(entities);
         fillSystems(entities);
         loadSystems();
       };
@@ -85,6 +133,37 @@
       if (previousOption) system.value = previousOption.value;
     }
     toast('A lista de entidades e sistemas foi atualizada.');
+  });
+
+  entityTrigger.onclick = () => {
+    if (entityTrigger.disabled) return;
+    const opening = entityMenu.hidden;
+    entityMenu.hidden = !opening;
+    entityTrigger.setAttribute('aria-expanded', String(opening));
+    if (opening) {
+      (entityMenu.querySelector('.selected') || entityMenu.querySelector('[role="option"]'))?.focus();
+    }
+  };
+  entityTrigger.onkeydown = event => {
+    if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      entityTrigger.click();
+    }
+  };
+  entityMenu.onkeydown = event => {
+    const options = [...entityMenu.querySelectorAll('[role="option"]')];
+    const current = options.indexOf(document.activeElement);
+    if (event.key === 'Escape') {
+      closeEntityMenu();
+      entityTrigger.focus();
+    } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const direction = event.key === 'ArrowDown' ? 1 : -1;
+      options[(current + direction + options.length) % options.length]?.focus();
+    }
+  };
+  document.addEventListener('click', event => {
+    if (!event.target.closest('.entity-select')) closeEntityMenu();
   });
 
   refreshSource();
