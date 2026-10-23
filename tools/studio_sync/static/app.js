@@ -208,17 +208,21 @@ function selectedStatuses() {
   return statuses;
 }
 
+function filteredChanges() {
+  const statuses = selectedStatuses();
+  return searchedChanges().filter(change => change.status === 'PENDENTE' || statuses.has(change.status));
+}
+
 function currentPageSourceChanges() {
-  const searched = searchedChanges();
-  const pageCount = Math.max(1, Math.ceil(searched.length / pageSize));
+  const filtered = filteredChanges();
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   currentPage = Math.min(Math.max(1, currentPage), pageCount);
   const start = (currentPage - 1) * pageSize;
-  return searched.slice(start, start + pageSize);
+  return filtered.slice(start, start + pageSize);
 }
 
 function currentPageChanges() {
-  const statuses = selectedStatuses();
-  return currentPageSourceChanges().filter(change => statuses.has(change.status));
+  return currentPageSourceChanges();
 }
 
 function showLoading(visible, message = 'Aguarde um momento...') {
@@ -254,11 +258,11 @@ function updateAnalyzeAvailability() {
 
 function renderChanges() {
   const searched = searchedChanges();
-  const pageItems = currentPageSourceChanges();
+  const filtered = filteredChanges();
   const rows = currentPageChanges();
   let emptyMessage = 'Analise o repositório para visualizar as diferenças.';
   if (changes.length && !searched.length) emptyMessage = 'Nenhum script corresponde à pesquisa.';
-  else if (pageItems.length && !rows.length) emptyMessage = 'Nenhum item desta página corresponde às situações selecionadas.';
+  else if (searched.length && !filtered.length) emptyMessage = 'Nenhum item corresponde às situações selecionadas.';
   $('#rows').innerHTML = rows.length ? rows.map(change => {
     const folderDetail = (change.directoryChanges || []).join(' ');
     const detail = [change.message, folderDetail, change.path].filter(Boolean).join(' • ');
@@ -286,11 +290,10 @@ function renderChanges() {
       updateSelection();
     };
   });
-  const pageCount = Math.max(1, Math.ceil(searched.length / pageSize));
-  const first = searched.length ? (currentPage - 1) * pageSize + 1 : 0;
-  const last = Math.min(currentPage * pageSize, searched.length);
-  const shown = rows.length !== pageItems.length ? ` • ${rows.length} exibido(s)` : '';
-  $('#page-summary').textContent = searched.length ? `${first}–${last} de ${searched.length} item(ns)${shown}` : 'Nenhum item';
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const first = filtered.length ? (currentPage - 1) * pageSize + 1 : 0;
+  const last = Math.min(currentPage * pageSize, filtered.length);
+  $('#page-summary').textContent = filtered.length ? `${first}–${last} de ${filtered.length} item(ns)` : 'Nenhum item';
   $('#page-indicator').textContent = `Página ${currentPage} de ${pageCount}`;
   $('#first-page').disabled = busy || currentPage <= 1;
   $('#previous-page').disabled = busy || currentPage <= 1;
@@ -466,6 +469,7 @@ $('#script-search').oninput = () => {
 };
 document.querySelectorAll('.status-filter').forEach(input => {
   input.onchange = () => {
+    currentPage = 1;
     renderChanges();
   };
 });
@@ -495,11 +499,11 @@ $('#previous-page').onclick = async () => {
   if (currentPage > 1) { currentPage--; await loadCurrentPage(); }
 };
 $('#next-page').onclick = async () => {
-  const pageCount = Math.max(1, Math.ceil(searchedChanges().length / pageSize));
+  const pageCount = Math.max(1, Math.ceil(filteredChanges().length / pageSize));
   if (currentPage < pageCount) { currentPage++; await loadCurrentPage(); }
 };
 $('#last-page').onclick = async () => {
-  const pageCount = Math.max(1, Math.ceil(searchedChanges().length / pageSize));
+  const pageCount = Math.max(1, Math.ceil(filteredChanges().length / pageSize));
   if (currentPage < pageCount) { currentPage = pageCount; await loadCurrentPage(); }
 };
 

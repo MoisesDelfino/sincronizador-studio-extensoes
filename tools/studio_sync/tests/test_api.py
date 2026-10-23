@@ -375,6 +375,37 @@ class StudioApiTests(unittest.TestCase):
         self.assertEqual(["A", "B", "C"], [item["titulo"] for item in summaries])
         self.assertEqual(2, session.calls[1][1]["params"]["offset"])  # type: ignore[index]
 
+    def test_ignores_flexibilized_artifacts_of_every_kind(self) -> None:
+        for kind in ArtifactKind:
+            page = {
+                "content": [
+                    {"titulo": "Artefato próprio", "referencia": {"id": 1}},
+                    {
+                        "titulo": "Artefato flexibilizado",
+                        "referencia": {"id": 2},
+                        "flexibilizadoPor": {"id": 4746, "nome": "Outra entidade"},
+                    },
+                    {
+                        "titulo": "Artefato flexibilizado em propriedade",
+                        "referencia": {"id": 3},
+                        "propriedades": [
+                            {"chave": "flexibilizadoPor", "valor": "Outra entidade"}
+                        ],
+                    },
+                ],
+                "hasNext": False,
+            }
+            session = FakeSession([FakeResponse(page)])
+            api = StudioApi(SessionCredentials("token", "context"), session=session)  # type: ignore[arg-type]
+
+            summaries = api.list_artifact_summaries(kind)
+
+            self.assertEqual(
+                ["Artefato próprio"],
+                [item["titulo"] for item in summaries],
+                kind.value,
+            )
+
     def test_filters_each_supported_artifact_kind_with_official_api_value(self) -> None:
         session = FakeSession([
             FakeResponse({"content": [], "hasNext": False}) for _kind in ArtifactKind
