@@ -19,6 +19,9 @@ WINDOWS_RESERVED_NAMES = {
     "CON", "PRN", "AUX", "NUL", *(f"COM{number}" for number in range(1, 10)),
     *(f"LPT{number}" for number in range(1, 10)),
 }
+DIRECTORY_ALIASES = {
+    ArtifactKind.COMPONENT: {"Components"},
+}
 
 
 class Synchronizer:
@@ -62,9 +65,14 @@ class Synchronizer:
         first = relative.parts[0]
         for kind in ArtifactKind:
             canonical = kind.directory
-            if canonical and self._directory_key(first) == self._directory_key(canonical):
+            if canonical and self._is_artifact_directory(kind, first):
                 return self.root / canonical / Path(*relative.parts[1:])
         return path
+
+    def _is_artifact_directory(self, kind: ArtifactKind, name: str) -> bool:
+        accepted = {kind.directory, *DIRECTORY_ALIASES.get(kind, set())}
+        key = self._directory_key(name)
+        return bool(kind.directory and any(self._directory_key(item) == key for item in accepted))
 
     def _artifact_directory_plan(self, kinds: Iterable[ArtifactKind]) -> list[tuple[Path, Path]]:
         if not self.root.is_dir():
@@ -75,25 +83,36 @@ class Synchronizer:
             canonical_name = kind.directory
             if not canonical_name:
                 continue
-            key = self._directory_key(canonical_name)
             canonical = self.root / canonical_name
+            if canonical.is_symlink():
+                raise ValueError(f"A pasta canônica não pode ser um link simbólico: {canonical}")
             for child in children:
-                if child.name != canonical_name and self._directory_key(child.name) == key:
+                if child.name != canonical_name and self._is_artifact_directory(kind, child.name):
                     if child.is_symlink():
                         raise ValueError(f"A pasta equivalente não pode ser um link simbólico: {child}")
                     plan.append((child, canonical))
         return plan
 
+    def directory_changes(self, kinds: Iterable[ArtifactKind]) -> dict[ArtifactKind, tuple[str, ...]]:
+        result: dict[ArtifactKind, list[str]] = defaultdict(list)
+        for source, target in self._artifact_directory_plan(kinds):
+            kind = next(item for item in ArtifactKind if item.directory == target.name)
+            action = "renomeada para" if not target.exists() else "consolidada em"
+            result[kind].append(
+                f'A pasta local "{source.name}" será {action} "{target.name}" ao sincronizar.'
+            )
+        return {kind: tuple(messages) for kind, messages in result.items()}
+
     @staticmethod
     def _merge_conflicts(source: Path, target: Path) -> list[Path]:
         conflicts: list[Path] = []
-        if not target.exists():
-            return conflicts
         for item in source.rglob("*"):
             relative = item.relative_to(source)
             destination = target / relative
             if item.is_symlink() or destination.is_symlink():
                 conflicts.append(relative)
+                continue
+            if not target.exists():
                 continue
             if not destination.exists():
                 continue
@@ -128,8 +147,7 @@ class Synchronizer:
             directory.rmdir()
         source.rmdir()
 
-    def _normalize_artifact_directories(self, kinds: Iterable[ArtifactKind]) -> None:
-        plan = self._artifact_directory_plan(kinds)
+    def _validate_directory_plan(self, plan: list[tuple[Path, Path]]) -> None:
         conflicts: list[str] = []
         for source, target in plan:
             for relative in self._merge_conflicts(source, target):
@@ -146,8 +164,15 @@ class Synchronizer:
                 "Não foi possível consolidar pastas equivalentes porque existem arquivos "
                 f"diferentes no mesmo caminho: {names}{suffix}"
             )
+
+    def _apply_directory_plan(self, plan: list[tuple[Path, Path]]) -> None:
         for source, target in plan:
             self._merge_directory(source, target)
+
+    def _normalize_artifact_directories(self, kinds: Iterable[ArtifactKind]) -> None:
+        plan = self._artifact_directory_plan(kinds)
+        self._validate_directory_plan(plan)
+        self._apply_directory_plan(plan)
 
     def _local_scripts(self) -> tuple[dict[str, list[Path]], list[str]]:
         """Indexa todos os .groovy abaixo da raiz, independentemente da pasta."""
@@ -218,6 +243,7 @@ class Synchronizer:
 
         local_scripts, scan_errors = self._local_scripts()
         scan_message = "; ".join(scan_errors)
+        planned_directories = self.directory_changes(kind for kind, _summary in requested)
         target_names: list[str] = []
         for artifact, error in zip(artifacts, fetch_errors):
             if artifact is None or error:
@@ -279,7 +305,14 @@ class Synchronizer:
             existing = matches[0] if matches else default_target
             target = self._canonical_artifact_path(existing)
             if not existing.exists():
-                changes.append(SyncChange(ChangeKind.CREATE, artifact, target))
+                changes.append(
+                    SyncChange(
+                        ChangeKind.CREATE,
+                        artifact,
+                        target,
+                        directory_changes=planned_directories.get(artifact.kind, ()),
+                    )
+                )
                 continue
             try:
                 local = existing.read_text(encoding="utf-8")
@@ -287,13 +320,21 @@ class Synchronizer:
                 changes.append(SyncChange(ChangeKind.ERROR, artifact, target, str(exc)))
                 continue
             status = ChangeKind.UNCHANGED if local == artifact.source_code else ChangeKind.UPDATE
-            changes.append(SyncChange(status, artifact, target))
+            changes.append(
+                SyncChange(
+                    status,
+                    artifact,
+                    target,
+                    directory_changes=planned_directories.get(artifact.kind, ()),
+                )
+            )
         return changes
 
     def apply(
         self,
         changes: Iterable[SyncChange],
         cancelled: Callable[[], bool] | None = None,
+        require_directory_preview: bool = False,
     ) -> int:
         selected = list(changes)
         actionable = [
@@ -303,10 +344,34 @@ class Synchronizer:
         ]
         if not actionable:
             return 0
-        self._normalize_artifact_directories(change.artifact.kind for change in actionable)
-        backup_id, manifest = self.backups.prepare(self.root, actionable)
+        directory_plan = self._artifact_directory_plan(
+            change.artifact.kind for change in actionable
+        )
+        if require_directory_preview:
+            kinds = {change.artifact.kind for change in actionable}
+            actual = {
+                message
+                for messages in self.directory_changes(kinds).values()
+                for message in messages
+            }
+            previewed = {
+                message
+                for change in actionable
+                for message in change.directory_changes
+            }
+            if actual != previewed:
+                raise ValueError(
+                    "As pastas locais mudaram depois da análise. Analise novamente antes de sincronizar."
+                )
+        self._validate_directory_plan(directory_plan)
+        backup_id, manifest = self.backups.prepare(
+            self.root,
+            actionable,
+            directory_moves=directory_plan,
+        )
         written = 0
         try:
+            self._apply_directory_plan(directory_plan)
             for change in actionable:
                 if cancelled and cancelled():
                     raise RuntimeError("Operação cancelada pelo usuário.")

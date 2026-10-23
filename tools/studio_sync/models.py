@@ -73,4 +73,5 @@ class SyncChange:
     artifact: RemoteArtifact | None
     path: Path | None
     message: str = ""
+    directory_changes: tuple[str, ...] = ()
 

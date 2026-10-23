@@ -210,6 +210,50 @@ class SynchronizerTests(unittest.TestCase):
                 (root / "Componentes" / "Existente.groovy").read_text(encoding="utf-8"),
             )
 
+    def test_recognizes_english_components_alias_and_previews_the_rename(self) -> None:
+        artifact = RemoteArtifact(ArtifactKind.COMPONENT, "Novo", "1", "10", "codigo")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            legacy = root / "Components"
+            legacy.mkdir()
+            (legacy / "Legado.groovy").write_text("legado", encoding="utf-8")
+            synchronizer = Synchronizer(
+                FakeApi({ArtifactKind.COMPONENT: [artifact]}),
+                root,
+                BackupStore(root / ".test-backups"),  # type: ignore[arg-type]
+            )
+
+            changes = synchronizer.analyze([ArtifactKind.COMPONENT])
+
+            self.assertEqual(root / "Componentes" / "Novo.groovy", changes[0].path)
+            self.assertEqual(
+                ('A pasta local "Components" será renomeada para "Componentes" ao sincronizar.',),
+                changes[0].directory_changes,
+            )
+            synchronizer.apply(changes)
+            self.assertFalse(legacy.exists())
+            self.assertEqual("legado", (root / "Componentes" / "Legado.groovy").read_text())
+
+    def test_requires_new_analysis_when_directory_plan_changes(self) -> None:
+        artifact = RemoteArtifact(ArtifactKind.COMPONENT, "Novo", "1", "10", "codigo")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            synchronizer = Synchronizer(
+                FakeApi({ArtifactKind.COMPONENT: [artifact]}),
+                root,
+                BackupStore(root / ".test-backups"),  # type: ignore[arg-type]
+            )
+            changes = synchronizer.analyze([ArtifactKind.COMPONENT])
+            legacy = root / "Components"
+            legacy.mkdir()
+            (legacy / "Legado.groovy").write_text("legado", encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "Analise novamente"):
+                synchronizer.apply(changes, require_directory_preview=True)
+
+            self.assertTrue(legacy.exists())
+            self.assertFalse((root / "Componentes").exists())
+
     def test_consolidates_accented_and_canonical_directories_without_data_loss(self) -> None:
         artifact = RemoteArtifact(ArtifactKind.DYNAMIC_SOURCE, "Nova", "1", "10", "codigo")
         with tempfile.TemporaryDirectory() as directory:
